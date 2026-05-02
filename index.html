@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Airbnb - Brasília Premium</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f7;
+    color: #222;
+    line-height: 1.5;
+  }
+  .header {
+    background: linear-gradient(135deg, #FF385C 0%, #E61E4D 100%);
+    color: white;
+    padding: 24px 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .header h1 { font-size: 24px; font-weight: 600; }
+  .header p { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: white;
+    padding: 6px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: 500;
+    color: #666;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .tab:hover { background: #f5f5f7; }
+  .tab.active { background: #222; color: white; }
+  .content { display: none; }
+  .content.active { display: block; animation: fadeIn 0.3s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .grid { display: grid; gap: 16px; }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+  }
+  .card h3 { font-size: 13px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card .value { font-size: 26px; font-weight: 700; color: #222; }
+  .card .sub { font-size: 12px; color: #888; margin-top: 4px; }
+  .card.green .value { color: #00A878; }
+  .card.red .value { color: #E61E4D; }
+  .card.blue .value { color: #0073E6; }
+  .card.orange .value { color: #FF8800; }
+  .card.purple .value { color: #7B61FF; }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 24px 0 16px;
+    color: #222;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+  }
+  th {
+    background: #fafafa;
+    font-weight: 600;
+    color: #555;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  tr:hover { background: #fafafa; }
+  .btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: #222; color: white; }
+  .btn-primary:hover { background: #444; }
+  .btn-danger { background: #E61E4D; color: white; }
+  .btn-danger:hover { background: #C01840; }
+  .btn-secondary { background: #f0f0f0; color: #333; }
+  .btn-secondary:hover { background: #e0e0e0; }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+  input, select {
+    padding: 9px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+    background: white;
+  }
+  input:focus, select:focus { outline: none; border-color: #FF385C; box-shadow: 0 0 0 3px rgba(255,56,92,0.1); }
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+  .label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafafa;
+  }
+  .upload-area:hover { border-color: #FF385C; background: #fff5f7; }
+  .upload-area.drag { border-color: #FF385C; background: #fff5f7; }
+  .chart-container { position: relative; height: 320px; }
+  .breakeven-bar {
+    height: 28px;
+    background: #f0f0f0;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 12px;
+    position: relative;
+  }
+  .breakeven-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #00A878 0%, #00C896 100%);
+    transition: width 0.6s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .breakeven-progress.warning { background: linear-gradient(90deg, #FF8800 0%, #FFA533 100%); }
+  .breakeven-progress.danger { background: linear-gradient(90deg, #E61E4D 0%, #FF385C 100%); }
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill-green { background: #DCFCE7; color: #166534; }
+  .pill-red { background: #FEE2E2; color: #991B1B; }
+  .pill-blue { background: #DBEAFE; color: #1E40AF; }
+  .pill-gray { background: #F3F4F6; color: #4B5563; }
+  .scenario-toggle {
+    display: inline-flex;
+    background: #f0f0f0;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+  .scenario-toggle button {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 13px;
+    color: #666;
+    transition: all 0.15s;
+  }
+  .scenario-toggle button.active { background: white; color: #222; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .alert-info { background: #DBEAFE; color: #1E40AF; border-left: 3px solid #3B82F6; }
+  .alert-warning { background: #FEF3C7; color: #92400E; border-left: 3px solid #F59E0B; }
+  .alert-success { background: #DCFCE7; color: #166534; border-left: 3px solid #22C55E; }
+  .empty-state {
+    text-align: center;
+    padding: 32px;
+    color: #888;
+    font-size: 14px;
+  }
+  .row-actions { display: flex; gap: 6px; }
+  .header-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .header-actions h2 { font-size: 17px; font-weight: 600; }
+  .small-input { padding: 6px 10px; font-size: 13px; }
+  .reset-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .reset-btn:hover { background: rgba(255,255,255,0.3); }
+  @media (max-width: 700px) {
+    .container { padding: 12px; }
+    .header { padding: 16px 20px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1>🏠 Dashboard Airbnb</h1>
+      <p>Brasília Premium: Conforto próximo à Esplanada — Anfitrião: Alex Mendes</p>
+    </div>
+    <button class="reset-btn" onclick="resetAllData()">↻ Resetar dados</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('visao-geral', this)">📊 Visão Geral</button>
+    <button class="tab" onclick="showTab('receitas', this)">💰 Receitas</button>
+    <button class="tab" onclick="showTab('investimento', this)">🔨 Investimento Inicial</button>
+    <button class="tab" onclick="showTab('despesas', this)">📉 Despesas Mensais</button>
+    <button class="tab" onclick="showTab('breakeven', this)">⚖️ Breakeven</button>
+    <button class="tab" onclick="showTab('impostos', this)">🧾 Impostos</button>
+    <button class="tab" onclick="showTab('config', this)">⚙️ Configurações</button>
+  </div>
+
+  <!-- =================== VISÃO GERAL =================== -->
+  <div id="visao-geral" class="content active">
+    <div class="grid grid-4">
+      <div class="card green">
+        <h3>Receita Total Líquida</h3>
+        <div class="value" id="kpi-receita">R$ 0,00</div>
+        <div class="sub" id="kpi-receita-sub">A partir de abril/2026</div>
+      </div>
+      <div class="card red">
+        <h3>Despesas Mensais (atual)</h3>
+        <div class="value" id="kpi-despesas">R$ 0,00</div>
+        <div class="sub">Sem parcela do apto</div>
+      </div>
+      <div class="card blue">
+        <h3>Lucro Líquido (acum.)</h3>
+        <div class="value" id="kpi-lucro">R$ 0,00</div>
+        <div class="sub" id="kpi-lucro-sub">Receita - Despesas</div>
+      </div>
+      <div class="card purple">
+        <h3>Investimento Inicial</h3>
+        <div class="value" id="kpi-investimento">R$ 0,00</div>
+        <div class="sub" id="kpi-investimento-sub">Total para montar</div>
+      </div>
+    </div>
+
+    <div class="grid grid-4" style="margin-top:16px">
+      <div class="card">
+        <h3>Noites Reservadas</h3>
+        <div class="value" id="kpi-noites">0</div>
+        <div class="sub">Total no período</div>
+      </div>
+      <div class="card">
+        <h3>Reservas</h3>
+        <div class="value" id="kpi-reservas">0</div>
+        <div class="sub">Quantidade total</div>
+      </div>
+      <div class="card">
+        <h3>Ticket Médio / Noite</h3>
+        <div class="value" id="kpi-ticket">R$ 0,00</div>
+        <div class="sub">Valor líquido</div>
+      </div>
+      <div class="card orange">
+        <h3>Parcelas mensais ativas</h3>
+        <div class="value" id="kpi-parcelas">R$ 0,00</div>
+        <div class="sub">Investimento parcelado</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:24px">
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Receita vs Despesa Mensal</h2>
+        <div class="chart-container"><canvas id="chartReceitaDespesa"></canvas></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Composição das Despesas</h2>
+        <div class="chart-container"><canvas id="chartDespesas"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Resumo Mensal</h2>
+      <div style="overflow-x:auto">
+        <table id="tabela-resumo-mensal">
+          <thead>
+            <tr><th>Mês</th><th>Receita Bruta</th><th>Receita Líquida</th><th>Despesas</th><th>Parcelas</th><th>Resultado s/ apto</th><th>Resultado c/ apto</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== RECEITAS =================== -->
+  <div id="receitas" class="content">
+    <div class="card">
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">📥 Importar relatório do Airbnb</h2>
+      <div class="alert alert-info">
+        <strong>Modelo recomendado:</strong> Use o CSV de transações exportado do Airbnb (ex: <code>airbnb_.csv</code>). Ele contém cada reserva com data, hóspede, noites, ganhos brutos, taxa de serviço e valor líquido pago — permitindo análises detalhadas.
+        <br><br>
+        <strong>Como exportar do Airbnb:</strong> Painel → Ganhos → Histórico de transações → Baixar CSV.
+      </div>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div style="font-size:32px; margin-bottom:8px">📂</div>
+        <div style="font-weight:600; color:#222">Clique ou arraste o CSV do Airbnb aqui</div>
+        <div style="font-size:13px; color:#888; margin-top:4px">Aceita o formato de relatório de transações (Reservas + Payouts)</div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importarCSV(event)">
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="header-actions">
+        <h2>➕ Adicionar reserva manualmente</h2>
+      </div>
+      <div class="form-row">
+        <div><label class="label">Data início</label><input type="date" id="rsv-inicio"></div>
+        <div><label class="label">Data fim</label><input type="date" id="rsv-fim"></div>
+        <div><label class="label">Noites</label><input type="number" id="rsv-noites" min="1" value="1"></div>
+        <div><label class="label">Hóspede</label><input type="text" id="rsv-hospede" placeholder="Nome"></div>
+        <div><label class="label">Ganhos brutos (R$)</label><input type="number" id="rsv-bruto" step="0.01" placeholder="0,00"></div>
+        <div><label class="label">Taxa serviço (R$)</label><input type="number" id="rsv-taxa" step="0.01" placeholder="0,00"></div>
+        <div><label class="label">Limpeza (R$)</label><input type="number" id="rsv-limpeza" step="0.01" placeholder="0,00"></div>
+        <div><label class="label">Líquido pago (R$)</label><input type="number" id="rsv-liquido" step="0.01" placeholder="0,00"></div>
+        <div><label class="label">Status</label><select id="rsv-status"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+        <div><button class="btn btn-primary" onclick="adicionarReserva()">Adicionar</button></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="header-actions">
+        <h2>📋 Reservas</h2>
+        <div>
+          <span id="contador-reservas" class="pill pill-blue">0 reservas</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="tabela-reservas">
+          <thead>
+            <tr>
+              <th>Início</th><th>Fim</th><th>Noites</th><th>Hóspede</th>
+              <th>Bruto</th><th>Taxa</th><th>Limpeza</th><th>Líquido</th>
+              <th>Status</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== INVESTIMENTO =================== -->
+  <div id="investimento" class="content">
+    <div class="grid grid-3">
+      <div class="card purple">
+        <h3>Investimento Total</h3>
+        <div class="value" id="inv-total">R$ 0,00</div>
+        <div class="sub">Soma de todos os itens</div>
+      </div>
+      <div class="card orange">
+        <h3>Parcelas Mensais (atuais)</h3>
+        <div class="value" id="inv-parcelas">R$ 0,00</div>
+        <div class="sub">Comprometimento mensal</div>
+      </div>
+      <div class="card blue">
+        <h3>Itens Cadastrados</h3>
+        <div class="value" id="inv-itens">0</div>
+        <div class="sub">Total de compras</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="header-actions">
+        <h2>➕ Adicionar item de investimento</h2>
+      </div>
+      <div class="form-row">
+        <div><label class="label">Onde</label><input type="text" id="inv-onde" placeholder="Loja"></div>
+        <div><label class="label">Quando</label><input type="text" id="inv-quando" placeholder="fev/2026"></div>
+        <div><label class="label">O que?</label><input type="text" id="inv-oque" placeholder="Item"></div>
+        <div><label class="label">Valor (R$)</label><input type="number" id="inv-valor" step="0.01" placeholder="0,00"></div>
+        <div><label class="label">Parcelas</label><input type="number" id="inv-parcelas-qtd" value="1" min="1"></div>
+        <div><label class="label">Forma pgto</label><input type="text" id="inv-cartao" placeholder="C6, Pix..."></div>
+        <div><button class="btn btn-primary" onclick="adicionarInvestimento()">Adicionar</button></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="header-actions">
+        <h2>🔨 Itens de investimento</h2>
+        <button class="btn btn-secondary btn-sm" onclick="exportarInvestimento()">📤 Exportar CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="tabela-investimento">
+          <thead>
+            <tr>
+              <th>Onde</th><th>Quando</th><th>O que?</th>
+              <th>Valor</th><th>Parc.</th><th>Mensal</th><th>Pgto</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== DESPESAS MENSAIS =================== -->
+  <div id="despesas" class="content">
+    <div class="alert alert-info">
+      Cadastre aqui as despesas correntes do imóvel. <strong>Por padrão</strong>, o sistema considera apenas despesas a partir de <strong>abril/2026</strong> (início da operação como Airbnb), conforme você indicou.
+    </div>
+
+    <div class="card">
+      <div class="header-actions">
+        <h2>➕ Adicionar despesa</h2>
+      </div>
+      <div class="form-row">
+        <div>
+          <label class="label">Categoria</label>
+          <select id="desp-categoria">
+            <option value="Condomínio">Condomínio</option>
+            <option value="Energia">Energia</option>
+            <option value="Internet">Internet</option>
+            <option value="IPTU">IPTU</option>
+            <option value="Água">Água</option>
+            <option value="Limpeza">Limpeza</option>
+            <option value="Manutenção">Manutenção</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div><label class="label">Descrição</label><input type="text" id="desp-descricao" placeholder="Detalhe (opcional)"></div>
+        <div><label class="label">Mês/Ano</label><input type="month" id="desp-mes"></div>
+        <div><label class="label">Valor (R$)</label><input type="number" id="desp-valor" step="0.01" placeholder="0,00"></div>
+        <div><button class="btn btn-primary" onclick="adicionarDespesa()">Adicionar</button></div>
+      </div>
+      <div style="margin-top:8px; font-size:12px; color:#888">
+        💡 Dica: para uma despesa que se repete todo mês com o mesmo valor, marque a opção abaixo:
+      </div>
+      <div style="margin-top:8px"><label style="font-size:13px"><input type="checkbox" id="desp-recorrente"> Repetir mensalmente até dezembro/2026</label></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="header-actions">
+        <h2>📉 Despesas cadastradas</h2>
+        <select id="filtro-mes-despesa" onchange="renderDespesas()" style="width:auto">
+          <option value="">Todos os meses</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="tabela-despesas">
+          <thead>
+            <tr><th>Mês</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== BREAKEVEN =================== -->
+  <div id="breakeven" class="content">
+    <div class="alert alert-info">
+      O <strong>breakeven</strong> (ponto de equilíbrio) mostra quando a receita acumulada cobre todos os custos. Compare os dois cenários: <strong>sem</strong> e <strong>com</strong> a parcela do apartamento.
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Cenário SEM apto -->
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🏠 Cenário 1: SEM parcela do apartamento</h2>
+        <p style="font-size:13px; color:#666; margin-bottom:14px">Considera só investimento inicial + despesas operacionais</p>
+
+        <div style="display:grid; gap:8px; margin-bottom:14px">
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Investimento inicial:</span>
+            <strong id="be1-investimento">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Despesas acumuladas:</span>
+            <strong id="be1-despesas">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo total acumulado:</span>
+            <strong id="be1-custo" style="color:#E61E4D">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Receita líquida acumulada:</span>
+            <strong id="be1-receita" style="color:#00A878">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0">
+            <span style="color:#666">Falta para o breakeven:</span>
+            <strong id="be1-falta">R$ 0,00</strong>
+          </div>
+        </div>
+        <div class="breakeven-bar"><div class="breakeven-progress" id="be1-bar" style="width:0%">0%</div></div>
+        <div style="margin-top:14px; padding:12px; background:#fafafa; border-radius:8px; font-size:13px" id="be1-projecao">Adicione receitas para ver a projeção.</div>
+      </div>
+
+      <!-- Cenário COM apto -->
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🏢 Cenário 2: COM parcela do apartamento</h2>
+        <p style="font-size:13px; color:#666; margin-bottom:14px">Considera custo total real, incluindo o financiamento</p>
+
+        <div style="margin-bottom:14px; padding:10px; background:#fff5f7; border-radius:8px; display:flex; align-items:center; gap:10px">
+          <label style="font-size:13px; font-weight:500; color:#666; white-space:nowrap">Parcela do apto (R$/mês):</label>
+          <input type="number" id="parcela-apto" step="0.01" placeholder="0,00" onchange="salvarConfig(); renderTudo()" style="max-width:160px">
+        </div>
+
+        <div style="display:grid; gap:8px; margin-bottom:14px">
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Investimento inicial:</span>
+            <strong id="be2-investimento">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Despesas + parcelas apto:</span>
+            <strong id="be2-despesas">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo total acumulado:</span>
+            <strong id="be2-custo" style="color:#E61E4D">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Receita líquida acumulada:</span>
+            <strong id="be2-receita" style="color:#00A878">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0">
+            <span style="color:#666">Falta para o breakeven:</span>
+            <strong id="be2-falta">R$ 0,00</strong>
+          </div>
+        </div>
+        <div class="breakeven-bar"><div class="breakeven-progress" id="be2-bar" style="width:0%">0%</div></div>
+        <div style="margin-top:14px; padding:12px; background:#fafafa; border-radius:8px; font-size:13px" id="be2-projecao">Adicione receitas para ver a projeção.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">📈 Evolução acumulada (Receita × Custos)</h2>
+      <div class="chart-container" style="height:380px"><canvas id="chartBreakeven"></canvas></div>
+    </div>
+  </div>
+
+  <!-- =================== IMPOSTOS =================== -->
+  <div id="impostos" class="content">
+    <div class="alert alert-warning">
+      <strong>⚠️ Atenção:</strong> Esta área é informativa. As alíquotas variam conforme regime tributário (Carnê-leão, MEI, Lucro Presumido). Consulte um contador para sua situação específica.
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <h3>Receita Bruta Total</h3>
+        <div class="value" id="imp-bruta">R$ 0,00</div>
+        <div class="sub">Base de cálculo</div>
+      </div>
+      <div class="card orange">
+        <h3>Imposto Estimado</h3>
+        <div class="value" id="imp-estimado">R$ 0,00</div>
+        <div class="sub" id="imp-aliquota-info">Alíquota: 0%</div>
+      </div>
+      <div class="card green">
+        <h3>Receita Líquida pós-imposto</h3>
+        <div class="value" id="imp-liquida">R$ 0,00</div>
+        <div class="sub">Receita - Imposto</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">⚙️ Configuração tributária</h2>
+      <div class="form-row">
+        <div>
+          <label class="label">Regime tributário</label>
+          <select id="regime-tributario" onchange="atualizarImpostos()">
+            <option value="carne-leao">Carnê-Leão (PF) — tabela progressiva</option>
+            <option value="custom">Alíquota personalizada</option>
+            <option value="isento">Isento / não declarar</option>
+          </select>
+        </div>
+        <div id="campo-aliquota-custom" style="display:none">
+          <label class="label">Alíquota personalizada (%)</label>
+          <input type="number" id="aliquota-custom" step="0.01" value="15" onchange="atualizarImpostos()">
+        </div>
+        <div>
+          <label class="label">Deduções permitidas/mês (R$)</label>
+          <input type="number" id="deducoes" step="0.01" value="0" onchange="atualizarImpostos()" placeholder="Ex: condomínio, IPTU">
+        </div>
+      </div>
+      <div style="margin-top:8px; font-size:12px; color:#888">
+        💡 Para aluguel por temporada (Airbnb), pessoa física declara via Carnê-Leão. Despesas como condomínio, IPTU e taxas podem ser deduzidas da receita bruta.
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">📋 Apuração mensal de impostos</h2>
+      <div style="overflow-x:auto">
+        <table id="tabela-impostos">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Receita bruta</th>
+              <th>Deduções</th>
+              <th>Base cálculo</th>
+              <th>Alíquota</th>
+              <th>Imposto devido</th>
+              <th>Líquido</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">📚 Tabela do Carnê-Leão 2026 (referência)</h2>
+      <table style="font-size:13px">
+        <thead>
+          <tr><th>Base de cálculo (R$)</th><th>Alíquota</th><th>Parcela a deduzir</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Até 2.428,80</td><td>Isento</td><td>—</td></tr>
+          <tr><td>De 2.428,81 até 2.826,65</td><td>7,5%</td><td>R$ 182,16</td></tr>
+          <tr><td>De 2.826,66 até 3.751,05</td><td>15,0%</td><td>R$ 394,16</td></tr>
+          <tr><td>De 3.751,06 até 4.664,68</td><td>22,5%</td><td>R$ 675,49</td></tr>
+          <tr><td>Acima de 4.664,68</td><td>27,5%</td><td>R$ 908,73</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px; font-size:12px; color:#888">
+        Valores de referência. Confira sempre na Receita Federal a tabela vigente no momento da apuração.
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== CONFIG =================== -->
+  <div id="config" class="content">
+    <div class="card">
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">⚙️ Configurações gerais</h2>
+
+      <div style="margin-bottom:16px">
+        <label class="label">Mês inicial da operação como Airbnb</label>
+        <input type="month" id="mes-inicio-operacao" value="2026-04" onchange="salvarConfig(); renderTudo()" style="max-width:200px">
+        <div style="font-size:12px; color:#888; margin-top:4px">Despesas anteriores a este mês não serão computadas no breakeven operacional.</div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label class="label">Parcela mensal do apartamento (R$)</label>
+        <input type="number" id="parcela-apto-config" step="0.01" placeholder="0,00" onchange="document.getElementById('parcela-apto').value=this.value; salvarConfig(); renderTudo()" style="max-width:200px">
+        <div style="font-size:12px; color:#888; margin-top:4px">Usado no Cenário 2 do breakeven.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">💾 Backup e dados</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="exportarBackup()">📤 Exportar backup (JSON)</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('backupInput').click()">📥 Importar backup</button>
+        <button class="btn btn-danger" onclick="resetAllData()">🗑️ Apagar tudo</button>
+      </div>
+      <input type="file" id="backupInput" accept=".json" style="display:none" onchange="importarBackup(event)">
+      <div style="margin-top:12px; font-size:12px; color:#888">
+        Os dados ficam salvos no seu navegador. Faça backup periodicamente exportando o JSON.
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">🔄 Carregar dados de exemplo</h2>
+      <p style="font-size:13px; color:#666; margin-bottom:12px">Carrega os dados que você enviou (reservas de abril/maio + investimento inicial).</p>
+      <button class="btn btn-primary" onclick="carregarDadosExemplo()">Carregar dados pré-cadastrados</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ==================== ESTADO ====================
+let dados = {
+  reservas: [],
+  investimento: [],
+  despesas: [],
+  config: {
+    parcelaApto: 0,
+    mesInicioOperacao: '2026-04',
+    regime: 'carne-leao',
+    aliquotaCustom: 15,
+    deducoes: 0
+  }
+};
+
+let charts = {};
+
+// ==================== PERSISTÊNCIA ====================
+async function salvarDados() {
+  try {
+    if (window.storage) {
+      await window.storage.set('airbnb_dashboard', JSON.stringify(dados));
+    } else {
+      // fallback in-memory only
+    }
+  } catch(e) { console.error('Erro ao salvar:', e); }
+}
+
+async function carregarDados() {
+  try {
+    if (window.storage) {
+      const r = await window.storage.get('airbnb_dashboard');
+      if (r && r.value) {
+        dados = JSON.parse(r.value);
+        if (!dados.config) dados.config = {};
+        if (typeof dados.config.parcelaApto !== 'number') dados.config.parcelaApto = 0;
+        if (!dados.config.mesInicioOperacao) dados.config.mesInicioOperacao = '2026-04';
+        if (!dados.config.regime) dados.config.regime = 'carne-leao';
+        if (typeof dados.config.aliquotaCustom !== 'number') dados.config.aliquotaCustom = 15;
+        if (typeof dados.config.deducoes !== 'number') dados.config.deducoes = 0;
+      }
+    }
+  } catch(e) { console.error('Erro ao carregar:', e); }
+}
+
+function salvarConfig() {
+  const p = parseFloat(document.getElementById('parcela-apto').value) || 0;
+  const pc = parseFloat(document.getElementById('parcela-apto-config').value) || 0;
+  dados.config.parcelaApto = pc || p || 0;
+  document.getElementById('parcela-apto').value = dados.config.parcelaApto || '';
+  document.getElementById('parcela-apto-config').value = dados.config.parcelaApto || '';
+  dados.config.mesInicioOperacao = document.getElementById('mes-inicio-operacao').value || '2026-04';
+  salvarDados();
+}
+
+// ==================== UTILS ====================
+function fmt(v) {
+  return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function parseBR(v) {
+  if (typeof v === 'number') return v;
+  if (!v) return 0;
+  return parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+}
+function mesDeData(d) {
+  if (!d) return '';
+  const partes = d.split(/[\/\-]/);
+  if (partes[0].length === 4) return partes[0] + '-' + partes[1].padStart(2,'0');
+  // mm/dd/yyyy
+  return partes[2] + '-' + partes[0].padStart(2,'0');
+}
+function nomeMes(ym) {
+  if (!ym) return '';
+  const [a, m] = ym.split('-');
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return meses[parseInt(m)-1] + '/' + a;
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+
+// ==================== TABS ====================
+function showTab(id, btn) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  // re-render charts on tab switch
+  setTimeout(() => renderCharts(), 50);
+}
+
+// ==================== RESERVAS ====================
+function adicionarReserva() {
+  const r = {
+    id: uid(),
+    inicio: document.getElementById('rsv-inicio').value,
+    fim: document.getElementById('rsv-fim').value,
+    noites: parseInt(document.getElementById('rsv-noites').value) || 1,
+    hospede: document.getElementById('rsv-hospede').value,
+    bruto: parseFloat(document.getElementById('rsv-bruto').value) || 0,
+    taxa: parseFloat(document.getElementById('rsv-taxa').value) || 0,
+    limpeza: parseFloat(document.getElementById('rsv-limpeza').value) || 0,
+    liquido: parseFloat(document.getElementById('rsv-liquido').value) || 0,
+    status: document.getElementById('rsv-status').value
+  };
+  if (!r.inicio || !r.bruto) { alert('Preencha pelo menos data de início e ganhos brutos'); return; }
+  if (!r.liquido) r.liquido = r.bruto - r.taxa;
+  dados.reservas.push(r);
+  ['rsv-inicio','rsv-fim','rsv-hospede','rsv-bruto','rsv-taxa','rsv-limpeza','rsv-liquido'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('rsv-noites').value = 1;
+  salvarDados();
+  renderTudo();
+}
+
+function removerReserva(id) {
+  if (!confirm('Remover esta reserva?')) return;
+  dados.reservas = dados.reservas.filter(r => r.id !== id);
+  salvarDados();
+  renderTudo();
+}
+
+function renderReservas() {
+  const tbody = document.querySelector('#tabela-reservas tbody');
+  tbody.innerHTML = '';
+  if (!dados.reservas.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Nenhuma reserva cadastrada. Importe um CSV ou adicione manualmente.</td></tr>';
+  } else {
+    dados.reservas.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||''));
+    dados.reservas.forEach(r => {
+      const pill = r.status === 'pago' ? 'pill-green' : 'pill-blue';
+      const pillTxt = r.status === 'pago' ? 'Pago' : 'Pendente';
+      tbody.innerHTML += `<tr>
+        <td>${r.inicio||'-'}</td><td>${r.fim||'-'}</td><td>${r.noites||0}</td>
+        <td>${r.hospede||'-'}</td>
+        <td>${fmt(r.bruto)}</td><td>${fmt(r.taxa)}</td><td>${fmt(r.limpeza)}</td><td><strong>${fmt(r.liquido)}</strong></td>
+        <td><span class="pill ${pill}">${pillTxt}</span></td>
+        <td><button class="btn btn-danger btn-sm" onclick="removerReserva('${r.id}')">×</button></td>
+      </tr>`;
+    });
+  }
+  document.getElementById('contador-reservas').textContent = dados.reservas.length + ' reservas';
+}
+
+// ==================== IMPORT CSV ====================
+function importarCSV(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const txt = e.target.result.replace(/^\uFEFF/, '');
+      const linhas = txt.split(/\r?\n/).filter(l => l.trim());
+      if (!linhas.length) { alert('CSV vazio'); return; }
+      const sep = linhas[0].includes(';') && !linhas[0].includes(',') ? ';' : ',';
+      const header = parseCSVLinha(linhas[0], sep);
+      const idx = (nome) => header.findIndex(h => h.toLowerCase().includes(nome.toLowerCase()));
+
+      const iTipo = idx('tipo');
+      const iInicio = idx('data de início');
+      const iFim = idx('data de término');
+      const iNoites = idx('noites');
+      const iHospede = idx('hóspede');
+      const iValor = idx('valor');
+      const iTaxa = idx('taxa de serviço');
+      const iLimpeza = idx('limpeza');
+      const iBruto = idx('ganhos brutos');
+      const iPago = idx('pago');
+
+      let novas = 0;
+      for (let i = 1; i < linhas.length; i++) {
+        const c = parseCSVLinha(linhas[i], sep);
+        const tipo = (c[iTipo]||'').toLowerCase();
+        if (!tipo.includes('reserva')) continue;
+        const r = {
+          id: uid(),
+          inicio: converterData(c[iInicio]),
+          fim: converterData(c[iFim]),
+          noites: parseInt(c[iNoites]) || 0,
+          hospede: c[iHospede] || '',
+          bruto: parseBR(c[iBruto] || c[iValor]),
+          taxa: parseBR(c[iTaxa]),
+          limpeza: parseBR(c[iLimpeza]),
+          liquido: parseBR(c[iPago] || c[iValor]),
+          status: (iPago >= 0 && c[iPago]) ? 'pago' : 'pendente'
+        };
+        if (!r.liquido && r.bruto) r.liquido = r.bruto - r.taxa;
+        if (!r.bruto) continue;
+        // evitar duplicidade pelo trio (inicio, hospede, bruto)
+        const dup = dados.reservas.find(x => x.inicio === r.inicio && x.hospede === r.hospede && Math.abs(x.bruto - r.bruto) < 0.01);
+        if (dup) continue;
+        dados.reservas.push(r);
+        novas++;
+      }
+      ev.target.value = '';
+      salvarDados();
+      renderTudo();
+      alert(`✅ ${novas} reservas importadas!`);
+    } catch (err) {
+      alert('Erro ao importar: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSVLinha(linha, sep) {
+  const result = [];
+  let cur = '';
+  let dentroAspas = false;
+  for (let i = 0; i < linha.length; i++) {
+    const ch = linha[i];
+    if (ch === '"') { dentroAspas = !dentroAspas; continue; }
+    if (ch === sep && !dentroAspas) { result.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function converterData(d) {
+  if (!d) return '';
+  // mm/dd/yyyy -> yyyy-mm-dd
+  const p = d.split(/[\/\-]/);
+  if (p.length !== 3) return d;
+  if (p[0].length === 4) return d;
+  return p[2] + '-' + p[0].padStart(2,'0') + '-' + p[1].padStart(2,'0');
+}
+
+// ==================== INVESTIMENTO ====================
+function adicionarInvestimento() {
+  const valor = parseFloat(document.getElementById('inv-valor').value) || 0;
+  const parcelas = parseInt(document.getElementById('inv-parcelas-qtd').value) || 1;
+  const item = {
+    id: uid(),
+    onde: document.getElementById('inv-onde').value,
+    quando: document.getElementById('inv-quando').value,
+    oque: document.getElementById('inv-oque').value,
+    valor: valor,
+    parcelas: parcelas,
+    mensal: valor / parcelas,
+    pgto: document.getElementById('inv-cartao').value
+  };
+  if (!item.valor) { alert('Informe o valor'); return; }
+  dados.investimento.push(item);
+  ['inv-onde','inv-quando','inv-oque','inv-valor','inv-cartao'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('inv-parcelas-qtd').value = 1;
+  salvarDados();
+  renderTudo();
+}
+
+function removerInvestimento(id) {
+  if (!confirm('Remover este item?')) return;
+  dados.investimento = dados.investimento.filter(i => i.id !== id);
+  salvarDados();
+  renderTudo();
+}
+
+function renderInvestimento() {
+  const tbody = document.querySelector('#tabela-investimento tbody');
+  tbody.innerHTML = '';
+  if (!dados.investimento.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum item de investimento cadastrado.</td></tr>';
+  } else {
+    dados.investimento.forEach(i => {
+      tbody.innerHTML += `<tr>
+        <td>${i.onde||'-'}</td><td>${i.quando||'-'}</td><td>${i.oque||'-'}</td>
+        <td>${fmt(i.valor)}</td><td>${i.parcelas}x</td><td>${fmt(i.mensal)}</td><td>${i.pgto||'-'}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removerInvestimento('${i.id}')">×</button></td>
+      </tr>`;
+    });
+  }
+}
+
+function exportarInvestimento() {
+  let csv = 'Onde,Quando,O que,Valor,Parcelas,Mensal,Pgto\n';
+  dados.investimento.forEach(i => {
+    csv += `"${i.onde||''}","${i.quando||''}","${i.oque||''}",${i.valor},${i.parcelas},${i.mensal.toFixed(2)},"${i.pgto||''}"\n`;
+  });
+  baixarArquivo(csv, 'investimento_airbnb.csv', 'text/csv');
+}
+
+// ==================== DESPESAS ====================
+function adicionarDespesa() {
+  const recorrente = document.getElementById('desp-recorrente').checked;
+  const baseMes = document.getElementById('desp-mes').value;
+  const valor = parseFloat(document.getElementById('desp-valor').value) || 0;
+  const cat = document.getElementById('desp-categoria').value;
+  const desc = document.getElementById('desp-descricao').value;
+
+  if (!baseMes || !valor) { alert('Preencha mês e valor'); return; }
+
+  if (recorrente) {
+    let [a, m] = baseMes.split('-').map(Number);
+    while (a < 2026 || (a === 2026 && m <= 12)) {
+      if (a > 2026) break;
+      const ym = a + '-' + String(m).padStart(2,'0');
+      dados.despesas.push({ id: uid(), mes: ym, categoria: cat, descricao: desc, valor: valor });
+      m++;
+      if (m > 12) { m = 1; a++; }
+    }
+  } else {
+    dados.despesas.push({ id: uid(), mes: baseMes, categoria: cat, descricao: desc, valor: valor });
+  }
+
+  document.getElementById('desp-descricao').value = '';
+  document.getElementById('desp-valor').value = '';
+  document.getElementById('desp-recorrente').checked = false;
+  salvarDados();
+  renderTudo();
+}
+
+function removerDespesa(id) {
+  if (!confirm('Remover esta despesa?')) return;
+  dados.despesas = dados.despesas.filter(d => d.id !== id);
+  salvarDados();
+  renderTudo();
+}
+
+function renderDespesas() {
+  const tbody = document.querySelector('#tabela-despesas tbody');
+  const filtro = document.getElementById('filtro-mes-despesa').value;
+  const filtroSel = document.getElementById('filtro-mes-despesa');
+  // popular filtros
+  const meses = [...new Set(dados.despesas.map(d => d.mes))].sort();
+  const valorAtual = filtroSel.value;
+  filtroSel.innerHTML = '<option value="">Todos os meses</option>';
+  meses.forEach(m => filtroSel.innerHTML += `<option value="${m}" ${m===valorAtual?'selected':''}>${nomeMes(m)}</option>`);
+
+  let lista = dados.despesas.slice().sort((a,b) => a.mes.localeCompare(b.mes));
+  if (filtro) lista = lista.filter(d => d.mes === filtro);
+
+  tbody.innerHTML = '';
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhuma despesa neste filtro.</td></tr>';
+  } else {
+    lista.forEach(d => {
+      tbody.innerHTML += `<tr>
+        <td>${nomeMes(d.mes)}</td><td><span class="pill pill-gray">${d.categoria}</span></td>
+        <td>${d.descricao||'-'}</td><td>${fmt(d.valor)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removerDespesa('${d.id}')">×</button></td>
+      </tr>`;
+    });
+  }
+}
+
+// ==================== CÁLCULOS ====================
+function calcularResumoMensal() {
+  const mesIni = dados.config.mesInicioOperacao || '2026-04';
+  const mesesSet = new Set();
+  dados.reservas.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
+  dados.despesas.forEach(d => { if (d.mes >= mesIni) mesesSet.add(d.mes); });
+
+  const meses = [...mesesSet].sort();
+  const parcelaApto = dados.config.parcelaApto || 0;
+
+  return meses.map(m => {
+    const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
+    const despesasMes = dados.despesas.filter(d => d.mes === m);
+    const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
+    const liquido = reservasMes.reduce((s,r) => s + r.liquido, 0);
+    const totalDesp = despesasMes.reduce((s,d) => s + d.valor, 0);
+    const totalParc = dados.investimento.reduce((s,i) => s + i.mensal, 0); // simplificado: parcelas atuais
+    return {
+      mes: m,
+      bruto, liquido,
+      despesas: totalDesp,
+      parcelas: totalParc,
+      resultadoSemApto: liquido - totalDesp - totalParc,
+      resultadoComApto: liquido - totalDesp - totalParc - parcelaApto
+    };
+  });
+}
+
+function renderResumoMensal() {
+  const tbody = document.querySelector('#tabela-resumo-mensal tbody');
+  const dadosMes = calcularResumoMensal();
+  tbody.innerHTML = '';
+  if (!dadosMes.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem dados a partir de ' + nomeMes(dados.config.mesInicioOperacao) + '.</td></tr>';
+    return;
+  }
+  dadosMes.forEach(d => {
+    const cor1 = d.resultadoSemApto >= 0 ? '#00A878' : '#E61E4D';
+    const cor2 = d.resultadoComApto >= 0 ? '#00A878' : '#E61E4D';
+    tbody.innerHTML += `<tr>
+      <td><strong>${nomeMes(d.mes)}</strong></td>
+      <td>${fmt(d.bruto)}</td>
+      <td>${fmt(d.liquido)}</td>
+      <td>${fmt(d.despesas)}</td>
+      <td>${fmt(d.parcelas)}</td>
+      <td style="color:${cor1}; font-weight:600">${fmt(d.resultadoSemApto)}</td>
+      <td style="color:${cor2}; font-weight:600">${fmt(d.resultadoComApto)}</td>
+    </tr>`;
+  });
+}
+
+// ==================== KPIs ====================
+function renderKPIs() {
+  const mesIni = dados.config.mesInicioOperacao || '2026-04';
+  const reservasOp = dados.reservas.filter(r => (r.inicio||'').slice(0,7) >= mesIni);
+  const receitaTotal = reservasOp.reduce((s,r) => s + r.liquido, 0);
+  const noitesTotal = reservasOp.reduce((s,r) => s + (r.noites||0), 0);
+  const reservasCount = reservasOp.length;
+  const despesasOp = dados.despesas.filter(d => d.mes >= mesIni).reduce((s,d) => s + d.valor, 0);
+  const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
+  const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
+
+  // calcular despesa mensal média atual (do último mês com dados)
+  const meses = calcularResumoMensal();
+  const ultMes = meses[meses.length-1];
+  const despMensalAtual = ultMes ? (ultMes.despesas + ultMes.parcelas) : parcMensal;
+
+  document.getElementById('kpi-receita').textContent = fmt(receitaTotal);
+  document.getElementById('kpi-receita-sub').textContent = `${reservasCount} reservas, ${noitesTotal} noites`;
+  document.getElementById('kpi-despesas').textContent = fmt(despMensalAtual);
+  document.getElementById('kpi-lucro').textContent = fmt(receitaTotal - despesasOp - parcMensal * meses.length);
+  document.getElementById('kpi-lucro-sub').textContent = `Sem parcela apto, ${meses.length} ${meses.length===1?'mês':'meses'}`;
+  document.getElementById('kpi-investimento').textContent = fmt(investTotal);
+  document.getElementById('kpi-investimento-sub').textContent = `${dados.investimento.length} itens`;
+  document.getElementById('kpi-noites').textContent = noitesTotal;
+  document.getElementById('kpi-reservas').textContent = reservasCount;
+  document.getElementById('kpi-ticket').textContent = fmt(noitesTotal ? receitaTotal / noitesTotal : 0);
+  document.getElementById('kpi-parcelas').textContent = fmt(parcMensal);
+
+  // investimento aba
+  document.getElementById('inv-total').textContent = fmt(investTotal);
+  document.getElementById('inv-parcelas').textContent = fmt(parcMensal);
+  document.getElementById('inv-itens').textContent = dados.investimento.length;
+}
+
+// ==================== BREAKEVEN ====================
+function renderBreakeven() {
+  const mesIni = dados.config.mesInicioOperacao || '2026-04';
+  const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
+  const meses = calcularResumoMensal();
+  const numMeses = meses.length;
+  const receitaAcum = meses.reduce((s,m) => s + m.liquido, 0);
+  const despesasAcum = meses.reduce((s,m) => s + m.despesas + m.parcelas, 0);
+  const parcelaApto = dados.config.parcelaApto || 0;
+  const aptoAcum = parcelaApto * numMeses;
+
+  // Cenário 1: SEM apto
+  const custo1 = investTotal + despesasAcum;
+  const falta1 = Math.max(0, custo1 - receitaAcum);
+  const pct1 = custo1 > 0 ? Math.min(100, (receitaAcum / custo1) * 100) : 0;
+
+  document.getElementById('be1-investimento').textContent = fmt(investTotal);
+  document.getElementById('be1-despesas').textContent = fmt(despesasAcum);
+  document.getElementById('be1-custo').textContent = fmt(custo1);
+  document.getElementById('be1-receita').textContent = fmt(receitaAcum);
+  document.getElementById('be1-falta').textContent = fmt(falta1);
+  const bar1 = document.getElementById('be1-bar');
+  bar1.style.width = pct1 + '%';
+  bar1.textContent = pct1.toFixed(1) + '%';
+  bar1.className = 'breakeven-progress' + (pct1 >= 100 ? '' : pct1 >= 50 ? ' warning' : ' danger');
+
+  // Cenário 2: COM apto
+  const custo2 = investTotal + despesasAcum + aptoAcum;
+  const falta2 = Math.max(0, custo2 - receitaAcum);
+  const pct2 = custo2 > 0 ? Math.min(100, (receitaAcum / custo2) * 100) : 0;
+
+  document.getElementById('be2-investimento').textContent = fmt(investTotal);
+  document.getElementById('be2-despesas').textContent = fmt(despesasAcum + aptoAcum);
+  document.getElementById('be2-custo').textContent = fmt(custo2);
+  document.getElementById('be2-receita').textContent = fmt(receitaAcum);
+  document.getElementById('be2-falta').textContent = fmt(falta2);
+  const bar2 = document.getElementById('be2-bar');
+  bar2.style.width = pct2 + '%';
+  bar2.textContent = pct2.toFixed(1) + '%';
+  bar2.className = 'breakeven-progress' + (pct2 >= 100 ? '' : pct2 >= 50 ? ' warning' : ' danger');
+
+  // projeções
+  const receitaMediaMes = numMeses ? receitaAcum / numMeses : 0;
+  const proj1 = projecaoBreakeven(custo1, receitaAcum, receitaMediaMes, meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0);
+  const proj2 = projecaoBreakeven(custo2, receitaAcum, receitaMediaMes, (meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0) + parcelaApto);
+
+  document.getElementById('be1-projecao').innerHTML = pct1 >= 100
+    ? '✅ <strong>Breakeven atingido!</strong> Você já cobriu o investimento e despesas.'
+    : numMeses && receitaMediaMes > 0
+      ? `📊 Receita média/mês: <strong>${fmt(receitaMediaMes)}</strong>. ${proj1}`
+      : 'Adicione receitas para ver a projeção.';
+
+  document.getElementById('be2-projecao').innerHTML = pct2 >= 100
+    ? '✅ <strong>Breakeven atingido!</strong> Você já cobriu tudo, inclusive o apto.'
+    : numMeses && receitaMediaMes > 0
+      ? `📊 Receita média/mês: <strong>${fmt(receitaMediaMes)}</strong>. ${proj2}`
+      : 'Adicione receitas para ver a projeção.';
+}
+
+function projecaoBreakeven(custoTotal, receitaAtual, receitaMediaMes, despesaMensal) {
+  const liquidoMes = receitaMediaMes - despesaMensal;
+  if (liquidoMes <= 0) return '⚠️ Receita média atual <strong>não cobre</strong> as despesas mensais. Breakeven não atingível neste ritmo.';
+  const falta = custoTotal - receitaAtual;
+  if (falta <= 0) return '✅ Já no positivo!';
+  const mesesRestantes = Math.ceil(falta / liquidoMes);
+  return `Faltam aprox. <strong>${mesesRestantes} ${mesesRestantes===1?'mês':'meses'}</strong> para o breakeven (no ritmo atual).`;
+}
+
+// ==================== IMPOSTOS ====================
+function calcularImpostoCarneLeao(base) {
+  if (base <= 2428.80) return 0;
+  if (base <= 2826.65) return base * 0.075 - 182.16;
+  if (base <= 3751.05) return base * 0.15 - 394.16;
+  if (base <= 4664.68) return base * 0.225 - 675.49;
+  return base * 0.275 - 908.73;
+}
+
+function atualizarImpostos() {
+  const regime = document.getElementById('regime-tributario').value;
+  dados.config.regime = regime;
+  document.getElementById('campo-aliquota-custom').style.display = regime === 'custom' ? 'block' : 'none';
+  dados.config.aliquotaCustom = parseFloat(document.getElementById('aliquota-custom').value) || 0;
+  dados.config.deducoes = parseFloat(document.getElementById('deducoes').value) || 0;
+  salvarDados();
+  renderImpostos();
+}
+
+function renderImpostos() {
+  const mesIni = dados.config.mesInicioOperacao || '2026-04';
+  const regime = dados.config.regime || 'carne-leao';
+  const aliquotaCustom = dados.config.aliquotaCustom || 0;
+  const deducoes = dados.config.deducoes || 0;
+
+  const mesesSet = new Set();
+  dados.reservas.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
+  const meses = [...mesesSet].sort();
+
+  let totalBruto = 0, totalImposto = 0;
+  const tbody = document.querySelector('#tabela-impostos tbody');
+  tbody.innerHTML = '';
+
+  if (!meses.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem reservas para apurar.</td></tr>';
+    document.getElementById('imp-bruta').textContent = fmt(0);
+    document.getElementById('imp-estimado').textContent = fmt(0);
+    document.getElementById('imp-liquida').textContent = fmt(0);
+    return;
+  }
+
+  meses.forEach(m => {
+    const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
+    const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
+    const base = Math.max(0, bruto - deducoes);
+    let imposto = 0, aliqStr = '';
+    if (regime === 'carne-leao') {
+      imposto = calcularImpostoCarneLeao(base);
+      const aliq = base > 4664.68 ? '27,5%' : base > 3751.05 ? '22,5%' : base > 2826.65 ? '15,0%' : base > 2428.80 ? '7,5%' : '0% (isento)';
+      aliqStr = aliq;
+    } else if (regime === 'custom') {
+      imposto = base * aliquotaCustom / 100;
+      aliqStr = aliquotaCustom + '%';
+    } else {
+      imposto = 0;
+      aliqStr = 'isento';
+    }
+    imposto = Math.max(0, imposto);
+    totalBruto += bruto;
+    totalImposto += imposto;
+
+    tbody.innerHTML += `<tr>
+      <td><strong>${nomeMes(m)}</strong></td>
+      <td>${fmt(bruto)}</td>
+      <td>${fmt(deducoes)}</td>
+      <td>${fmt(base)}</td>
+      <td><span class="pill pill-gray">${aliqStr}</span></td>
+      <td style="color:#E61E4D; font-weight:600">${fmt(imposto)}</td>
+      <td style="color:#00A878; font-weight:600">${fmt(bruto - imposto)}</td>
+    </tr>`;
+  });
+
+  document.getElementById('imp-bruta').textContent = fmt(totalBruto);
+  document.getElementById('imp-estimado').textContent = fmt(totalImposto);
+  document.getElementById('imp-liquida').textContent = fmt(totalBruto - totalImposto);
+  document.getElementById('imp-aliquota-info').textContent = 'Regime: ' + (regime === 'carne-leao' ? 'Carnê-Leão' : regime === 'custom' ? aliquotaCustom + '%' : 'isento');
+}
+
+// ==================== CHARTS ====================
+function renderCharts() {
+  const meses = calcularResumoMensal();
+
+  // Receita vs Despesa
+  const ctx1 = document.getElementById('chartReceitaDespesa');
+  if (ctx1) {
+    if (charts.rd) charts.rd.destroy();
+    charts.rd = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: meses.map(m => nomeMes(m.mes)),
+        datasets: [
+          { label: 'Receita líquida', data: meses.map(m => m.liquido), backgroundColor: '#00A878', borderRadius: 6 },
+          { label: 'Despesas + parcelas', data: meses.map(m => m.despesas + m.parcelas), backgroundColor: '#E61E4D', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v } } }
+      }
+    });
+  }
+
+  // Composição despesas
+  const ctx2 = document.getElementById('chartDespesas');
+  if (ctx2) {
+    if (charts.desp) charts.desp.destroy();
+    const mesIni = dados.config.mesInicioOperacao || '2026-04';
+    const grupos = {};
+    dados.despesas.filter(d => d.mes >= mesIni).forEach(d => {
+      grupos[d.categoria] = (grupos[d.categoria] || 0) + d.valor;
+    });
+    const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
+    const numMeses = meses.length || 1;
+    grupos['Parcelas (invest.)'] = parcMensal * numMeses;
+    if (dados.config.parcelaApto > 0) grupos['Parcela apto'] = dados.config.parcelaApto * numMeses;
+
+    const labels = Object.keys(grupos);
+    const valores = Object.values(grupos);
+
+    if (!labels.length) {
+      ctx2.parentElement.innerHTML = '<div class="empty-state" style="height:320px; display:flex; align-items:center; justify-content:center">Sem despesas cadastradas.</div>';
+    } else {
+      charts.desp = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: valores,
+            backgroundColor: ['#FF385C','#0073E6','#00A878','#FF8800','#7B61FF','#E61E4D','#FFB800','#666']
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'right' } }
+        }
+      });
+    }
+  }
+
+  // Breakeven evolução
+  const ctx3 = document.getElementById('chartBreakeven');
+  if (ctx3) {
+    if (charts.be) charts.be.destroy();
+    const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
+    const parcelaApto = dados.config.parcelaApto || 0;
+
+    const labels = meses.map(m => nomeMes(m.mes));
+    let acumReceita = 0;
+    let acumCustoSemApto = investTotal;
+    let acumCustoComApto = investTotal;
+    const dataReceita = [], dataCusto1 = [], dataCusto2 = [];
+    meses.forEach(m => {
+      acumReceita += m.liquido;
+      acumCustoSemApto += m.despesas + m.parcelas;
+      acumCustoComApto += m.despesas + m.parcelas + parcelaApto;
+      dataReceita.push(acumReceita);
+      dataCusto1.push(acumCustoSemApto);
+      dataCusto2.push(acumCustoComApto);
+    });
+
+    charts.be = new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Receita acumulada', data: dataReceita, borderColor: '#00A878', backgroundColor: 'rgba(0,168,120,0.1)', fill: true, tension: 0.3 },
+          { label: 'Custo s/ apto', data: dataCusto1, borderColor: '#FF8800', backgroundColor: 'transparent', borderDash: [5,5], tension: 0.3 },
+          { label: 'Custo c/ apto', data: dataCusto2, borderColor: '#E61E4D', backgroundColor: 'transparent', tension: 0.3 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
+      }
+    });
+  }
+}
+
+// ==================== BACKUP ====================
+function exportarBackup() {
+  const json = JSON.stringify(dados, null, 2);
+  baixarArquivo(json, 'backup_dashboard_airbnb_' + new Date().toISOString().slice(0,10) + '.json', 'application/json');
+}
+
+function importarBackup(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const novo = JSON.parse(e.target.result);
+      if (!novo.reservas) throw new Error('Backup inválido');
+      dados = novo;
+      salvarDados();
+      renderTudo();
+      alert('✅ Backup restaurado!');
+    } catch(err) { alert('Erro: ' + err.message); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+function baixarArquivo(conteudo, nome, tipo) {
+  const blob = new Blob([conteudo], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nome; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function resetAllData() {
+  if (!confirm('⚠️ Apagar TODOS os dados? Esta ação não pode ser desfeita.')) return;
+  dados = { reservas: [], investimento: [], despesas: [], config: { parcelaApto: 0, mesInicioOperacao: '2026-04', regime: 'carne-leao', aliquotaCustom: 15, deducoes: 0 } };
+  await salvarDados();
+  renderTudo();
+}
+
+// ==================== DADOS DE EXEMPLO ====================
+function carregarDadosExemplo() {
+  if (!confirm('Carregar os dados que você enviou? Isto vai SUBSTITUIR os dados atuais.')) return;
+
+  // Reservas dos CSVs
+  dados.reservas = [
+    { id: uid(), inicio: '2026-04-25', fim: '2026-04-28', noites: 3, hospede: 'Felipe Bianchi Gonçalves', bruto: 509.96, taxa: 23.35, limpeza: 120.00, liquido: 489.45, status: 'pago' },
+    { id: uid(), inicio: '2026-04-28', fim: '2026-04-30', noites: 2, hospede: 'Edilene Alves Dos Santos', bruto: 445.28, taxa: 20.39, limpeza: 100.00, liquido: 427.37, status: 'pago' },
+    { id: uid(), inicio: '2026-04-30', fim: '2026-05-03', noites: 3, hospede: 'Demétrius Malafaia', bruto: 674.68, taxa: 30.90, limpeza: 120.00, liquido: 647.54, status: 'pago' },
+    { id: uid(), inicio: '2026-05-05', fim: '2026-05-07', noites: 2, hospede: 'Kellen Marin Alcantara', bruto: 445.28, taxa: 20.39, limpeza: 100.00, liquido: 427.37, status: 'pendente' },
+    { id: uid(), inicio: '2026-05-07', fim: '2026-05-10', noites: 3, hospede: 'Emanuel Gomes De Abreu', bruto: 513.94, taxa: 23.53, limpeza: 120.00, liquido: 493.27, status: 'pendente' },
+    { id: uid(), inicio: '2026-05-10', fim: '2026-05-24', noites: 14, hospede: 'Lucas Araújo De Almeida', bruto: 2326.45, taxa: 106.53, limpeza: 120.00, liquido: 2232.87, status: 'pendente' },
+    { id: uid(), inicio: '2026-05-30', fim: '2026-06-08', noites: 9, hospede: 'Fernanda Araújo', bruto: 1229.16, taxa: 56.28, limpeza: 120.00, liquido: 1179.72, status: 'pendente' }
+  ];
+
+  // Investimento (Controle_Airbnb.csv)
+  dados.investimento = [
+    { id: uid(), onde: 'Loja Campeão', quando: 'fev/2026', oque: 'Iluminação', valor: 818.00, parcelas: 10, mensal: 81.80, pgto: 'C6' },
+    { id: uid(), onde: 'Leroy Merlin', quando: 'fev/2026', oque: 'Massa, parafusos', valor: 155.00, parcelas: 1, mensal: 155.00, pgto: 'C6' },
+    { id: uid(), onde: 'Mercado Livre', quando: 'fev/2026', oque: 'Mesa', valor: 289.00, parcelas: 6, mensal: 49.00, pgto: 'C6' },
+    { id: uid(), onde: 'Amazon', quando: 'fev/2026', oque: 'Tomadas', valor: 116.00, parcelas: 1, mensal: 116.00, pgto: 'BTG' },
+    { id: uid(), onde: 'Mercado Livre', quando: 'fev/2026', oque: 'Detector fumaça', valor: 99.00, parcelas: 1, mensal: 99.00, pgto: 'Pix' },
+    { id: uid(), onde: 'Mercado Livre', quando: 'fev/2026', oque: 'Fechadura', valor: 485.00, parcelas: 9, mensal: 54.00, pgto: 'C6' },
+    { id: uid(), onde: 'Mercado Livre', quando: 'fev/2026', oque: 'TV', valor: 1849.00, parcelas: 10, mensal: 184.90, pgto: 'C6' },
+    { id: uid(), onde: 'Amazon', quando: '', oque: 'Frigobar', valor: 1098.00, parcelas: 12, mensal: 91.50, pgto: 'C6' },
+    { id: uid(), onde: 'Carrefour', quando: '', oque: 'Microondas', valor: 508.08, parcelas: 8, mensal: 63.51, pgto: '' },
+    { id: uid(), onde: 'Amazon', quando: '', oque: 'Tomadas', valor: 59.00, parcelas: 1, mensal: 59.00, pgto: '' },
+    { id: uid(), onde: 'Eletrogomes', quando: '', oque: '', valor: 26.00, parcelas: 1, mensal: 26.00, pgto: '' },
+    { id: uid(), onde: 'Elétrica Moisés', quando: '', oque: 'Leds', valor: 221.40, parcelas: 1, mensal: 221.40, pgto: '' },
+    { id: uid(), onde: 'Mercado Livre', quando: '', oque: 'Papel parede', valor: 155.00, parcelas: 1, mensal: 155.00, pgto: '' },
+    { id: uid(), onde: 'Shopee', quando: '', oque: 'Ripado e metalon', valor: 174.94, parcelas: 2, mensal: 87.47, pgto: '' },
+    { id: uid(), onde: 'Mercado Livre', quando: '', oque: 'Dobradiças', valor: 68.25, parcelas: 1, mensal: 68.25, pgto: '' },
+    { id: uid(), onde: 'Shopee', quando: '', oque: 'Espelho', valor: 151.14, parcelas: 2, mensal: 75.57, pgto: '' },
+    { id: uid(), onde: 'Mercado Livre', quando: '', oque: 'Tomadas', valor: 304.00, parcelas: 1, mensal: 304.00, pgto: '' },
+    { id: uid(), onde: 'Mercado Livre', quando: '', oque: 'Tomadas', valor: 254.64, parcelas: 1, mensal: 254.64, pgto: '' },
+    { id: uid(), onde: 'Castelo Forte', quando: '', oque: 'Textura', valor: 178.54, parcelas: 2, mensal: 89.27, pgto: '' },
+    { id: uid(), onde: 'Castelo Forte', quando: 'mar/2026', oque: 'Itens', valor: 98.39, parcelas: 1, mensal: 98.39, pgto: '' },
+    { id: uid(), onde: 'Castelo Forte', quando: 'mar/2026', oque: 'Itens', valor: 163.74, parcelas: 1, mensal: 163.74, pgto: '' },
+    { id: uid(), onde: 'Marceneiro', quando: 'mar/2026', oque: '', valor: 800.00, parcelas: 1, mensal: 800.00, pgto: 'Pix' },
+    { id: uid(), onde: 'Frigobar', quando: '', oque: 'Frigobar', valor: 700.00, parcelas: 1, mensal: 700.00, pgto: 'Pix' }
+  ];
+
+  dados.despesas = [];
+  salvarDados();
+  renderTudo();
+  alert('✅ Dados carregados! Agora cadastre suas despesas mensais e a parcela do apto.');
+}
+
+// ==================== INIT ====================
+function renderTudo() {
+  // popular config UI
+  document.getElementById('parcela-apto').value = dados.config.parcelaApto || '';
+  document.getElementById('parcela-apto-config').value = dados.config.parcelaApto || '';
+  document.getElementById('mes-inicio-operacao').value = dados.config.mesInicioOperacao || '2026-04';
+  document.getElementById('regime-tributario').value = dados.config.regime || 'carne-leao';
+  document.getElementById('aliquota-custom').value = dados.config.aliquotaCustom || 15;
+  document.getElementById('deducoes').value = dados.config.deducoes || 0;
+  document.getElementById('campo-aliquota-custom').style.display = dados.config.regime === 'custom' ? 'block' : 'none';
+
+  renderReservas();
+  renderInvestimento();
+  renderDespesas();
+  renderResumoMensal();
+  renderKPIs();
+  renderBreakeven();
+  renderImpostos();
+  renderCharts();
+}
+
+// drag & drop
+const upArea = document.getElementById('uploadArea');
+['dragenter','dragover'].forEach(e => upArea.addEventListener(e, ev => { ev.preventDefault(); upArea.classList.add('drag'); }));
+['dragleave','drop'].forEach(e => upArea.addEventListener(e, ev => { ev.preventDefault(); upArea.classList.remove('drag'); }));
+upArea.addEventListener('drop', ev => {
+  const f = ev.dataTransfer.files[0];
+  if (f) { document.getElementById('fileInput').files = ev.dataTransfer.files; importarCSV({ target: { files: [f], value: '' } }); }
+});
+
+(async function init() {
+  await carregarDados();
+  renderTudo();
+})();
+</script>
+
+</body>
+</html>
