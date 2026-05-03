@@ -484,21 +484,66 @@
 
   <!-- =================== INVESTIMENTO =================== -->
   <div id="investimento" class="content">
-    <div class="grid grid-3">
+    <div class="grid grid-4">
       <div class="card purple">
         <h3>Investimento Total</h3>
         <div class="value" id="inv-total">R$ 0,00</div>
         <div class="sub">Soma de todos os itens</div>
       </div>
       <div class="card orange">
-        <h3>Parcelas Mensais (atuais)</h3>
-        <div class="value" id="inv-parcelas">R$ 0,00</div>
-        <div class="sub">Comprometimento mensal</div>
+        <h3>Parcela Deste Mês</h3>
+        <div class="value" id="inv-parcela-atual">R$ 0,00</div>
+        <div class="sub" id="inv-parcela-atual-sub">Itens com parcelas ativas</div>
       </div>
-      <div class="card blue">
-        <h3>Itens Cadastrados</h3>
-        <div class="value" id="inv-itens">0</div>
-        <div class="sub">Total de compras</div>
+      <div class="card red">
+        <h3>Saldo Devedor</h3>
+        <div class="value" id="inv-saldo-devedor">R$ 0,00</div>
+        <div class="sub" id="inv-saldo-devedor-sub">Total ainda a pagar</div>
+      </div>
+      <div class="card green">
+        <h3>Já Pago</h3>
+        <div class="value" id="inv-ja-pago">R$ 0,00</div>
+        <div class="sub" id="inv-ja-pago-sub">Total quitado até agora</div>
+      </div>
+    </div>
+
+    <!-- Progresso geral -->
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+        <h2 style="font-size:16px; font-weight:600">📊 Progresso Geral do Pagamento</h2>
+        <span id="inv-progresso-pct" style="font-size:14px; font-weight:600; color:#00A878">0%</span>
+      </div>
+      <div class="breakeven-bar"><div class="breakeven-progress" id="inv-progresso-bar" style="width:0%">0%</div></div>
+      <div style="margin-top:10px; font-size:13px; color:#666" id="inv-progresso-texto">
+        Adicione itens para ver o progresso.
+      </div>
+    </div>
+
+    <!-- Cronograma mensal de parcelas -->
+    <div class="card" style="margin-top:16px">
+      <div class="header-actions">
+        <h2>📅 Cronograma de Parcelas por Mês</h2>
+        <button class="btn btn-secondary btn-sm" onclick="exportarCronograma()">📤 Exportar CSV</button>
+      </div>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Mostra o valor a pagar por mês considerando que a 1ª parcela cai no <strong>mês seguinte à compra</strong> (padrão cartão de crédito). 
+        Inclui também 6 meses futuros pra você se planejar.
+      </p>
+      <div class="chart-container" style="height:300px; margin-bottom:16px"><canvas id="chartCronograma"></canvas></div>
+      <div style="overflow-x:auto">
+        <table id="tabela-cronograma">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Parcelas Ativas</th>
+              <th>Valor a Pagar</th>
+              <th>Pago Acumulado</th>
+              <th>Falta Pagar</th>
+              <th>% Quitado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
 
@@ -508,12 +553,15 @@
       </div>
       <div class="form-row">
         <div><label class="label">Onde</label><input type="text" id="inv-onde" placeholder="Loja"></div>
-        <div><label class="label">Quando</label><input type="text" id="inv-quando" placeholder="fev/2026"></div>
+        <div><label class="label">Quando (mês compra)</label><input type="text" id="inv-quando" placeholder="fev/2026"></div>
         <div><label class="label">O que?</label><input type="text" id="inv-oque" placeholder="Item"></div>
         <div><label class="label">Valor (R$)</label><input type="number" id="inv-valor" step="0.01" placeholder="0,00"></div>
         <div><label class="label">Parcelas</label><input type="number" id="inv-parcelas-qtd" value="1" min="1"></div>
         <div><label class="label">Forma pgto</label><input type="text" id="inv-cartao" placeholder="C6, Pix..."></div>
         <div><button class="btn btn-primary" onclick="adicionarInvestimento()">Adicionar</button></div>
+      </div>
+      <div style="margin-top:8px; font-size:12px; color:#888">
+        💡 Use formato <strong>"fev/2026"</strong> ou <strong>"02/2026"</strong> no campo "Quando". A 1ª parcela cai no mês seguinte.
       </div>
     </div>
 
@@ -527,7 +575,7 @@
           <thead>
             <tr>
               <th>Onde</th><th>Quando</th><th>O que?</th>
-              <th>Valor</th><th>Parc.</th><th>Mensal</th><th>Pgto</th><th>Ações</th>
+              <th>Valor</th><th>Parc.</th><th>Mensal</th><th>Status</th><th>Pgto</th><th>Ações</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -542,7 +590,31 @@
       Cadastre aqui as despesas correntes do imóvel. <strong>Por padrão</strong>, o sistema considera apenas despesas a partir de <strong>abril/2026</strong> (início da operação como Airbnb), conforme você indicou.
     </div>
 
-    <div class="card">
+    <!-- Resumo das parcelas do investimento (informativo, não editável) -->
+    <div class="card" style="background:#fafafa; border:1px solid #ddd">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+        <h2 style="font-size:16px; font-weight:600">💜 Parcelas do Investimento Inicial (informativo)</h2>
+        <span class="pill pill-blue">Calculado automaticamente</span>
+      </div>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Estes valores são puxados automaticamente da aba <strong>🔨 Investimento Inicial</strong> e variam mês a mês conforme as parcelas vão sendo quitadas. Não precisa cadastrá-los aqui.
+      </p>
+      <div style="overflow-x:auto">
+        <table id="tabela-parcelas-invest">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Itens c/ parcela ativa</th>
+              <th>Valor das parcelas</th>
+              <th>Saldo devedor após pagamento</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
       <div class="header-actions">
         <h2>➕ Adicionar despesa</h2>
       </div>
@@ -1139,6 +1211,7 @@ function showTab(id, btn) {
   setTimeout(() => {
     renderCharts();
     if (id === 'dre') renderDreCharts();
+    if (id === 'investimento') renderCronograma();
   }, 50);
 }
 
@@ -1307,16 +1380,37 @@ function removerInvestimento(id) {
   renderTudo();
 }
 
+function mesAtualYM() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
 function renderInvestimento() {
   const tbody = document.querySelector('#tabela-investimento tbody');
   tbody.innerHTML = '';
+  const hoje = mesAtualYM();
+
   if (!dados.investimento.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum item de investimento cadastrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum item de investimento cadastrado.</td></tr>';
   } else {
-    dados.investimento.forEach(i => {
+    // ordenar por data de compra
+    const lista = [...dados.investimento].sort((a, b) => {
+      const qa = parseQuandoCompra(a.quando) || '9999-99';
+      const qb = parseQuandoCompra(b.quando) || '9999-99';
+      return qa.localeCompare(qb);
+    });
+    lista.forEach(i => {
+      const st = statusItemNoMes(i, hoje);
+      let pillClass = 'pill-gray', pillTxt = '—';
+      if (st.status === 'futura') { pillClass = 'pill-blue'; pillTxt = 'Aguardando 1ª'; }
+      else if (st.status === 'pagando') { pillClass = 'pill-blue'; pillTxt = `Pagando ${st.parcAtual}/${st.totalParc}`; }
+      else if (st.status === 'quitado') { pillClass = 'pill-green'; pillTxt = '✓ Quitado'; }
+
       tbody.innerHTML += `<tr>
         <td>${i.onde||'-'}</td><td>${i.quando||'-'}</td><td>${i.oque||'-'}</td>
-        <td>${fmt(i.valor)}</td><td>${i.parcelas}x</td><td>${fmt(i.mensal)}</td><td>${i.pgto||'-'}</td>
+        <td>${fmt(i.valor)}</td><td>${i.parcelas}x</td><td>${fmt(i.mensal)}</td>
+        <td><span class="pill ${pillClass}">${pillTxt}</span></td>
+        <td>${i.pgto||'-'}</td>
         <td><button class="btn btn-danger btn-sm" onclick="removerInvestimento('${i.id}')">×</button></td>
       </tr>`;
     });
@@ -1329,6 +1423,200 @@ function exportarInvestimento() {
     csv += `"${i.onde||''}","${i.quando||''}","${i.oque||''}",${i.valor},${i.parcelas},${i.mensal.toFixed(2)},"${i.pgto||''}"\n`;
   });
   baixarArquivo(csv, 'investimento_airbnb.csv', 'text/csv');
+}
+
+// ==================== CRONOGRAMA DE PARCELAS ====================
+function calcularCronogramaCompleto() {
+  // retorna lista de meses com {mes, ymStr, parcelas (qtd ativas), valor, pago_acum, falta, pct}
+  if (!dados.investimento.length) return [];
+
+  // Determinar a faixa de meses: do menor "primeira parcela" ao maior "última parcela"
+  let mesIni = null, mesFim = null;
+  dados.investimento.forEach(item => {
+    const compra = parseQuandoCompra(item.quando) || (dados.config.mesInicioOperacao || '2026-04');
+    const primeira = adicionarMesesAYM(compra, 1);
+    const ultima = adicionarMesesAYM(primeira, (item.parcelas || 1) - 1);
+    if (!mesIni || primeira < mesIni) mesIni = primeira;
+    if (!mesFim || ultima > mesFim) mesFim = ultima;
+  });
+
+  if (!mesIni || !mesFim) return [];
+
+  // Estende 6 meses pra além do fim, mas limita pra não passar de 24 meses no total
+  const meses = [];
+  let cur = mesIni;
+  let safety = 0;
+  while (cur <= mesFim && safety < 60) {
+    meses.push(cur);
+    cur = adicionarMesesAYM(cur, 1);
+    safety++;
+  }
+
+  const valorTotalInv = dados.investimento.reduce((s, i) => s + (i.valor || 0), 0);
+
+  let pagoAcum = 0;
+  return meses.map(ym => {
+    let valorMes = 0, qtdAtivas = 0;
+    dados.investimento.forEach(item => {
+      const p = parcelaItemNoMes(item, ym);
+      if (p > 0) { valorMes += p; qtdAtivas++; }
+    });
+    pagoAcum += valorMes;
+    const falta = Math.max(0, valorTotalInv - pagoAcum);
+    const pct = valorTotalInv > 0 ? (pagoAcum / valorTotalInv) : 0;
+    return { mes: ym, qtdAtivas, valor: valorMes, pagoAcum, falta, pct };
+  });
+}
+
+function renderCronograma() {
+  const tbody = document.querySelector('#tabela-cronograma tbody');
+  if (!tbody) return;
+  const cronograma = calcularCronogramaCompleto();
+  const hoje = mesAtualYM();
+
+  // KPIs do topo
+  const valorTotal = dados.investimento.reduce((s, i) => s + (i.valor || 0), 0);
+  const parcelaHoje = parcelasInvestimentoNoMes(hoje);
+  const itemHoje = cronograma.find(c => c.mes === hoje);
+  const pagoHoje = itemHoje ? itemHoje.pagoAcum : (cronograma.length && cronograma[cronograma.length-1].mes < hoje ? valorTotal : 0);
+  const saldoDevedor = Math.max(0, valorTotal - pagoHoje);
+  const pctGeral = valorTotal > 0 ? (pagoHoje / valorTotal * 100) : 0;
+
+  // Quantos itens com parcela ativa hoje
+  let itensAtivosHoje = 0;
+  dados.investimento.forEach(i => { if (parcelaItemNoMes(i, hoje) > 0) itensAtivosHoje++; });
+
+  document.getElementById('inv-total').textContent = fmt(valorTotal);
+  document.getElementById('inv-parcela-atual').textContent = fmt(parcelaHoje);
+  document.getElementById('inv-parcela-atual-sub').textContent = `${itensAtivosHoje} ${itensAtivosHoje===1?'item':'itens'} pagando · ${nomeMes(hoje)}`;
+  document.getElementById('inv-saldo-devedor').textContent = fmt(saldoDevedor);
+  document.getElementById('inv-saldo-devedor-sub').textContent = saldoDevedor > 0 ? 'Ainda a quitar' : '✓ Quitado';
+  document.getElementById('inv-ja-pago').textContent = fmt(pagoHoje);
+  document.getElementById('inv-ja-pago-sub').textContent = `${pctGeral.toFixed(1)}% do total`;
+
+  // Barra de progresso
+  const bar = document.getElementById('inv-progresso-bar');
+  const pctEl = document.getElementById('inv-progresso-pct');
+  if (bar && pctEl) {
+    bar.style.width = pctGeral + '%';
+    bar.textContent = pctGeral.toFixed(1) + '%';
+    bar.className = 'breakeven-progress' + (pctGeral >= 100 ? '' : pctGeral >= 50 ? ' warning' : ' danger');
+    pctEl.textContent = pctGeral.toFixed(1) + '%';
+    pctEl.style.color = pctGeral >= 100 ? '#00A878' : '#0073E6';
+  }
+
+  // Texto de progresso
+  const textoEl = document.getElementById('inv-progresso-texto');
+  if (textoEl && cronograma.length) {
+    const ultimoMes = cronograma[cronograma.length - 1].mes;
+    if (saldoDevedor === 0) {
+      textoEl.innerHTML = `✅ <strong>Investimento totalmente quitado!</strong>`;
+    } else {
+      textoEl.innerHTML = `Faltam <strong>${fmt(saldoDevedor)}</strong> a pagar. Quitação prevista para <strong>${nomeMes(ultimoMes)}</strong>.`;
+    }
+  } else if (textoEl) {
+    textoEl.textContent = 'Adicione itens para ver o progresso.';
+  }
+
+  // Tabela cronograma
+  tbody.innerHTML = '';
+  if (!cronograma.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sem cronograma — adicione itens de investimento.</td></tr>';
+    return;
+  }
+
+  cronograma.forEach(c => {
+    // destaque para o mês atual
+    const isAtual = c.mes === hoje;
+    const isPassado = c.mes < hoje;
+    const isFuturo = c.mes > hoje;
+    const bgColor = isAtual ? 'background:#FFF8DC; font-weight:600' : (isPassado ? 'opacity:0.7' : '');
+    const corValor = c.valor > 0 ? '#7B61FF' : '#999';
+    const corFalta = c.falta > 0 ? '#E61E4D' : '#00A878';
+
+    tbody.innerHTML += `<tr style="${bgColor}">
+      <td><strong>${nomeMes(c.mes)}</strong>${isAtual ? ' <span class="pill pill-blue" style="margin-left:6px">atual</span>' : ''}</td>
+      <td>${c.qtdAtivas}x</td>
+      <td style="color:${corValor}; font-weight:600">${c.valor > 0 ? fmt(c.valor) : '—'}</td>
+      <td style="color:#00A878">${fmt(c.pagoAcum)}</td>
+      <td style="color:${corFalta}; font-weight:600">${fmt(c.falta)}</td>
+      <td>${(c.pct * 100).toFixed(1)}%</td>
+    </tr>`;
+  });
+
+  // Renderizar gráfico do cronograma
+  renderChartCronograma(cronograma);
+}
+
+function renderChartCronograma(cronograma) {
+  const ctx = document.getElementById('chartCronograma');
+  if (!ctx) return;
+  if (charts.cronograma) charts.cronograma.destroy();
+  if (!cronograma.length) return;
+
+  const hoje = mesAtualYM();
+  const valorTotal = dados.investimento.reduce((s, i) => s + (i.valor || 0), 0);
+
+  charts.cronograma = new Chart(ctx, {
+    data: {
+      labels: cronograma.map(c => nomeMes(c.mes)),
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Parcela do mês',
+          data: cronograma.map(c => c.valor),
+          backgroundColor: cronograma.map(c => c.mes === hoje ? '#FF385C' : c.mes < hoje ? '#9F4FFF' : '#7B61FF'),
+          borderRadius: 6,
+          yAxisID: 'y1',
+          order: 2
+        },
+        {
+          type: 'line',
+          label: 'Saldo devedor',
+          data: cronograma.map(c => c.falta),
+          borderColor: '#E61E4D',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          pointRadius: 3,
+          yAxisID: 'y2',
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (c) => c.dataset.label + ': R$ ' + c.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})
+          }
+        }
+      },
+      scales: {
+        y1: {
+          type: 'linear', position: 'left',
+          title: { display: true, text: 'Parcela mensal (R$)' },
+          ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') }
+        },
+        y2: {
+          type: 'linear', position: 'right',
+          title: { display: true, text: 'Saldo devedor (R$)' },
+          grid: { drawOnChartArea: false },
+          ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') }
+        }
+      }
+    }
+  });
+}
+
+function exportarCronograma() {
+  const cron = calcularCronogramaCompleto();
+  let csv = 'Mes,Parcelas Ativas,Valor a Pagar,Pago Acumulado,Falta Pagar,Pct Quitado\n';
+  cron.forEach(c => {
+    csv += `${c.mes},${c.qtdAtivas},${c.valor.toFixed(2)},${c.pagoAcum.toFixed(2)},${c.falta.toFixed(2)},${(c.pct*100).toFixed(2)}%\n`;
+  });
+  baixarArquivo(csv, 'cronograma_parcelas.csv', 'text/csv');
 }
 
 // ==================== DESPESAS ====================
@@ -1399,6 +1687,36 @@ function renderDespesas() {
       </tr>`;
     });
   }
+
+  // Tabela informativa de parcelas do investimento
+  renderTabelaParcelasInvest();
+}
+
+function renderTabelaParcelasInvest() {
+  const tbody = document.querySelector('#tabela-parcelas-invest tbody');
+  if (!tbody) return;
+  const cron = calcularCronogramaCompleto();
+  const hoje = mesAtualYM();
+
+  if (!cron.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Nenhum item de investimento cadastrado.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  cron.forEach(c => {
+    const isAtual = c.mes === hoje;
+    const isPassado = c.mes < hoje;
+    const bgColor = isAtual ? 'background:#FFF8DC; font-weight:600' : (isPassado ? 'opacity:0.7' : '');
+    const corValor = c.valor > 0 ? '#7B61FF' : '#999';
+    const corFalta = c.falta > 0 ? '#E61E4D' : '#00A878';
+    tbody.innerHTML += `<tr style="${bgColor}">
+      <td><strong>${nomeMes(c.mes)}</strong>${isAtual ? ' <span class="pill pill-blue" style="margin-left:6px">atual</span>' : ''}</td>
+      <td>${c.qtdAtivas}x</td>
+      <td style="color:${corValor}; font-weight:600">${c.valor > 0 ? fmt(c.valor) : '—'}</td>
+      <td style="color:${corFalta}">${fmt(c.falta)}</td>
+    </tr>`;
+  });
 }
 
 // ==================== CÁLCULOS ====================
@@ -1434,7 +1752,7 @@ function calcularResumoMensal() {
     const liquido = reservasMes.reduce((s,r) => s + r.liquido, 0);
     const taxasAirbnb = bruto - liquido; // taxa cobrada pelo Airbnb
     const totalDesp = despesasMes.reduce((s,d) => s + d.valor, 0);
-    const totalParc = dados.investimento.reduce((s,i) => s + i.mensal, 0); // simplificado
+    const totalParc = parcelasInvestimentoNoMes(m); // CORRETO: só itens com parcelas ativas neste mês
 
     // Despesas detalhadas por categoria
     const desp = {};
@@ -1467,7 +1785,108 @@ function calcularResumoMensal() {
   });
 }
 
-// ==================== DRE ====================
+// ==================== CÁLCULO DE PARCELAS DO INVESTIMENTO ====================
+// Cada item tem "quando" (mês da compra, formato livre como "fev/2026", "mar/2026" ou YYYY-MM)
+// e "parcelas" (número de parcelas).
+// REGRA: 1ª parcela cai no MÊS SEGUINTE à compra (padrão cartão de crédito).
+// Itens sem "quando" definido são tratados como tendo sido comprados no mês de início da operação - 1.
+
+function parseQuandoCompra(quando) {
+  // Aceita formatos: "fev/2026", "Fev/2026", "02/2026", "2026-02"
+  if (!quando) return null;
+  const s = String(quando).trim().toLowerCase();
+  // mapeamento de meses pt-BR
+  const mesesMap = {
+    jan:1, fev:2, mar:3, abr:4, mai:5, jun:6,
+    jul:7, ago:8, set:9, out:10, nov:11, dez:12
+  };
+  // formato "abr/2026" ou "abril/2026"
+  let m = s.match(/^([a-zç]+)\/(\d{2,4})$/);
+  if (m) {
+    const mesNome = m[1].slice(0,3);
+    const ano = m[2].length === 2 ? '20' + m[2] : m[2];
+    const num = mesesMap[mesNome];
+    if (num) return ano + '-' + String(num).padStart(2, '0');
+  }
+  // formato "02/2026"
+  m = s.match(/^(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    const ano = m[2].length === 2 ? '20' + m[2] : m[2];
+    return ano + '-' + m[1].padStart(2, '0');
+  }
+  // formato "2026-02"
+  m = s.match(/^(\d{4})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + m[2].padStart(2, '0');
+  return null;
+}
+
+function adicionarMesesAYM(ym, n) {
+  // soma n meses a um YYYY-MM e retorna outro YYYY-MM
+  const [a, m] = ym.split('-').map(Number);
+  let novoM = m + n;
+  let novoA = a;
+  while (novoM > 12) { novoM -= 12; novoA++; }
+  while (novoM < 1) { novoM += 12; novoA--; }
+  return novoA + '-' + String(novoM).padStart(2, '0');
+}
+
+// Calcula a parcela ativa de UM item de investimento em um determinado mês (YYYY-MM)
+// Retorna 0 se já não tem mais parcelas, ou o valor mensal se ainda tem.
+function parcelaItemNoMes(item, ym) {
+  const quandoCompra = parseQuandoCompra(item.quando);
+  // Se não tem "quando" definido, assume que começou no mês de início da operação
+  const compra = quandoCompra || dados.config.mesInicioOperacao || '2026-04';
+  // 1ª parcela = mês seguinte à compra
+  const primeiraParcela = adicionarMesesAYM(compra, 1);
+  // Última parcela = primeiraParcela + (parcelas - 1)
+  const totalParcelas = item.parcelas || 1;
+  const ultimaParcela = adicionarMesesAYM(primeiraParcela, totalParcelas - 1);
+  // Está ativo se ym >= primeiraParcela E ym <= ultimaParcela
+  if (ym >= primeiraParcela && ym <= ultimaParcela) {
+    return item.mensal || 0;
+  }
+  return 0;
+}
+
+// Soma das parcelas ativas de TODOS os itens em um mês
+function parcelasInvestimentoNoMes(ym) {
+  return dados.investimento.reduce((s, i) => s + parcelaItemNoMes(i, ym), 0);
+}
+
+// Para cada item, retorna {ym, valorPago, valorRestante, parcelaAtual}
+function statusItemNoMes(item, ym) {
+  const quandoCompra = parseQuandoCompra(item.quando);
+  const compra = quandoCompra || dados.config.mesInicioOperacao || '2026-04';
+  const primeiraParcela = adicionarMesesAYM(compra, 1);
+  const totalParcelas = item.parcelas || 1;
+  const mensal = item.mensal || 0;
+  const valorTotal = item.valor || (mensal * totalParcelas);
+
+  if (ym < primeiraParcela) {
+    return { ativa: 0, paga: 0, restante: valorTotal, parcAtual: 0, totalParc: totalParcelas, status: 'futura' };
+  }
+
+  // Quantos meses se passaram desde a 1ª parcela (inclusive)
+  const [aRef, mRef] = ym.split('-').map(Number);
+  const [aIni, mIni] = primeiraParcela.split('-').map(Number);
+  const mesesPassados = (aRef - aIni) * 12 + (mRef - mIni) + 1;
+
+  if (mesesPassados >= totalParcelas) {
+    // Já quitou
+    return { ativa: 0, paga: valorTotal, restante: 0, parcAtual: totalParcelas, totalParc: totalParcelas, status: 'quitado' };
+  }
+
+  return {
+    ativa: mensal,
+    paga: mensal * mesesPassados,
+    restante: mensal * (totalParcelas - mesesPassados),
+    parcAtual: mesesPassados,
+    totalParc: totalParcelas,
+    status: 'pagando'
+  };
+}
+
+
 let dreModoAtual = 'mensal';
 
 function alternarDre(modo) {
@@ -1722,12 +2141,10 @@ function renderKPIs() {
   document.getElementById('kpi-reservas').textContent = reservasCount;
   document.getElementById('kpi-noites-sub').textContent = `${noitesTotal} noites · Ticket: ${fmt(ticket)}`;
   document.getElementById('kpi-investimento').textContent = fmt(investTotal);
-  document.getElementById('kpi-investimento-sub').textContent = `${dados.investimento.length} itens · ${fmt(parcMensal)}/mês`;
+  const parcelaHojeKpi = parcelasInvestimentoNoMes(mesAtualYM());
+  document.getElementById('kpi-investimento-sub').textContent = `${dados.investimento.length} itens · ${fmt(parcelaHojeKpi)} este mês`;
 
-  // investimento aba
-  document.getElementById('inv-total').textContent = fmt(investTotal);
-  document.getElementById('inv-parcelas').textContent = fmt(parcMensal);
-  document.getElementById('inv-itens').textContent = dados.investimento.length;
+  // KPIs detalhados da aba investimento são renderizados em renderCronograma()
 }
 
 // ==================== BREAKEVEN ====================
@@ -2366,6 +2783,7 @@ function renderTudo() {
 
   renderReservas();
   renderInvestimento();
+  renderCronograma();
   renderDespesas();
   renderResumoMensal();
   renderDre();
