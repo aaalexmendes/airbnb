@@ -568,14 +568,26 @@
     <div class="card" style="margin-top:16px">
       <div class="header-actions">
         <h2>🔨 Itens de investimento</h2>
-        <button class="btn btn-secondary btn-sm" onclick="exportarInvestimento()">📤 Exportar CSV</button>
+        <div style="display:flex; gap:8px; align-items:center">
+          <span id="inv-filtros-ativos" style="font-size:12px; color:#666"></span>
+          <button class="btn btn-secondary btn-sm" id="inv-limpar-filtros" onclick="limparFiltrosInv()" style="display:none">✕ Limpar filtros</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportarInvestimento()">📤 Exportar CSV</button>
+        </div>
       </div>
+      <p style="font-size:12px; color:#666; margin-bottom:8px">
+        💡 Clique em <strong>Status</strong>, <strong>Pgto</strong> ou <strong>Onde</strong> para filtrar.
+      </p>
       <div style="overflow-x:auto">
         <table id="tabela-investimento">
           <thead>
             <tr>
-              <th>Onde</th><th>Quando</th><th>O que?</th>
-              <th>Valor</th><th>Parc.</th><th>Mensal</th><th>Status</th><th>Pgto</th><th>Ações</th>
+              <th style="cursor:pointer; user-select:none" onclick="abrirFiltroInv('onde')">Onde ▾</th>
+              <th>Quando</th>
+              <th>O que?</th>
+              <th>Valor</th><th>Parc.</th><th>Mensal</th>
+              <th style="cursor:pointer; user-select:none" onclick="abrirFiltroInv('status')">Status ▾</th>
+              <th style="cursor:pointer; user-select:none" onclick="abrirFiltroInv('pgto')">Pgto ▾</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -796,31 +808,51 @@
       </div>
 
       <div style="margin-top:14px">
-        <label class="label">Deduções permitidas por mês (R$)</label>
-        <input type="number" id="deducoes" step="0.01" value="0" onchange="atualizarImpostos()" placeholder="0,00 — soma de condomínio + IPTU + outras dedutíveis" style="max-width:300px">
+        <label class="label" style="display:flex; align-items:center; gap:8px">
+          <input type="checkbox" id="deducoes-auto" checked onchange="atualizarImpostos()" style="width:auto; margin:0">
+          <span><strong>Calcular deduções automaticamente</strong> (recomendado)</span>
+        </label>
+        <div style="font-size:12px; color:#666; margin-top:6px; padding:10px; background:#F0F8FF; border-radius:6px; border-left:3px solid #0073E6">
+          💡 <strong>Como funciona:</strong> o sistema soma <strong>Condomínio + IPTU + Manutenção</strong> (despesas dedutíveis) cadastradas em cada mês e aplica a <strong>proporção dos dias alugados</strong>. Ex: se em maio o apto ficou alugado 22 dos 31 dias (71%), e as despesas dedutíveis somaram R$ 600 → dedução = R$ 600 × 71% = R$ 426.
+        </div>
+      </div>
+
+      <div style="margin-top:14px" id="deducoes-manual-area">
+        <label class="label">Dedução manual mensal padrão (R$) — usada apenas se a opção automática estiver desligada</label>
+        <input type="number" id="deducoes" step="0.01" value="0" onchange="atualizarImpostos()" placeholder="0,00" style="max-width:300px">
         <div style="font-size:12px; color:#888; margin-top:4px">
-          💡 Some condomínio + IPTU + manutenção. Considere a <strong>proporção do período alugado</strong>. Ex: se o apto ficou alugado 20 dias num mês de 30 (66%), deduza 66% das despesas. Guarde notas fiscais por 5 anos.
+          Valor único aplicado a todos os meses. Para valores diferentes por mês, use o cálculo automático ou edite cada linha na tabela de apuração abaixo.
         </div>
       </div>
     </div>
 
     <div class="card" style="margin-top:16px">
-      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">📋 Apuração mensal de impostos</h2>
+      <div class="header-actions">
+        <h2 style="font-size:16px; font-weight:600">📋 Apuração mensal de impostos</h2>
+        <div style="display:flex; gap:8px; align-items:center; font-size:12px; color:#666">
+          <span>💡 Clique na coluna <strong>Deduções</strong> para editar manualmente um mês específico</span>
+        </div>
+      </div>
       <div style="overflow-x:auto">
         <table id="tabela-impostos">
           <thead>
             <tr>
               <th>Mês</th>
               <th>Receita bruta</th>
-              <th>Deduções</th>
+              <th>Deduções <span style="font-weight:400; opacity:0.7">(editável)</span></th>
               <th>Base cálculo</th>
               <th>Alíquota</th>
               <th>Imposto devido</th>
               <th>Líquido</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:#666; padding:10px; background:#FAFAFA; border-radius:6px">
+        <strong>📊 Total a pagar:</strong> <span id="imp-total-a-pagar" style="color:#E61E4D; font-weight:600">R$ 0,00</span> ·
+        <strong>Já pago:</strong> <span id="imp-total-pago" style="color:#00A878; font-weight:600">R$ 0,00</span>
       </div>
     </div>
 
@@ -995,11 +1027,13 @@ function garantirEstruturaDados() {
   if (!dados.investimento) dados.investimento = [];
   if (!dados.despesas) dados.despesas = [];
   if (!dados.config) dados.config = {};
+  if (!dados.impostosMes) dados.impostosMes = {}; // { "2026-04": { deducaoOverride?: number, pago?: boolean, dataPagamento?: string } }
   if (typeof dados.config.parcelaApto !== 'number') dados.config.parcelaApto = 0;
   if (!dados.config.mesInicioOperacao) dados.config.mesInicioOperacao = '2026-04';
   if (!dados.config.regime) dados.config.regime = 'renda-alta';
   if (typeof dados.config.aliquotaCustom !== 'number') dados.config.aliquotaCustom = 27.5;
   if (typeof dados.config.deducoes !== 'number') dados.config.deducoes = 0;
+  if (typeof dados.config.deducoesAuto !== 'boolean') dados.config.deducoesAuto = true;
 }
 
 async function salvarNuvem() {
@@ -1385,36 +1419,107 @@ function mesAtualYM() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
+// Estado dos filtros da tabela de investimento
+let filtrosInv = { onde: null, status: null, pgto: null };
+
+function abrirFiltroInv(coluna) {
+  // Coletar valores únicos dessa coluna
+  const hoje = mesAtualYM();
+  let valores = [];
+  if (coluna === 'onde') {
+    valores = [...new Set(dados.investimento.map(i => i.onde).filter(Boolean))].sort();
+  } else if (coluna === 'pgto') {
+    valores = [...new Set(dados.investimento.map(i => i.pgto || '(vazio)').filter(Boolean))].sort();
+  } else if (coluna === 'status') {
+    valores = ['Aguardando 1ª', 'Pagando', 'Quitado'];
+  }
+
+  if (!valores.length) { alert('Sem valores para filtrar nesta coluna.'); return; }
+
+  // Constrói menu simples via prompt numerado
+  let texto = `Filtrar por ${coluna.toUpperCase()}\n\n`;
+  texto += '0. (Mostrar tudo)\n';
+  valores.forEach((v, i) => texto += `${i + 1}. ${v}\n`);
+  texto += '\nDigite o número da opção:';
+
+  const r = prompt(texto, '0');
+  if (r === null) return;
+  const idx = parseInt(r);
+  if (isNaN(idx)) return;
+  if (idx === 0) {
+    filtrosInv[coluna] = null;
+  } else if (idx >= 1 && idx <= valores.length) {
+    filtrosInv[coluna] = valores[idx - 1];
+  }
+  renderInvestimento();
+}
+
+function limparFiltrosInv() {
+  filtrosInv = { onde: null, status: null, pgto: null };
+  renderInvestimento();
+}
+
 function renderInvestimento() {
   const tbody = document.querySelector('#tabela-investimento tbody');
   tbody.innerHTML = '';
   const hoje = mesAtualYM();
 
+  // Atualizar indicador de filtros ativos
+  const filtrosAtivos = Object.entries(filtrosInv).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}`);
+  const elFiltros = document.getElementById('inv-filtros-ativos');
+  const elLimpar = document.getElementById('inv-limpar-filtros');
+  if (elFiltros) {
+    elFiltros.textContent = filtrosAtivos.length ? `🔍 ${filtrosAtivos.join(' · ')}` : '';
+    if (elLimpar) elLimpar.style.display = filtrosAtivos.length ? '' : 'none';
+  }
+
   if (!dados.investimento.length) {
     tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum item de investimento cadastrado.</td></tr>';
-  } else {
-    // ordenar por data de compra
-    const lista = [...dados.investimento].sort((a, b) => {
-      const qa = parseQuandoCompra(a.quando) || '9999-99';
-      const qb = parseQuandoCompra(b.quando) || '9999-99';
-      return qa.localeCompare(qb);
-    });
-    lista.forEach(i => {
-      const st = statusItemNoMes(i, hoje);
-      let pillClass = 'pill-gray', pillTxt = '—';
-      if (st.status === 'futura') { pillClass = 'pill-blue'; pillTxt = 'Aguardando 1ª'; }
-      else if (st.status === 'pagando') { pillClass = 'pill-blue'; pillTxt = `Pagando ${st.parcAtual}/${st.totalParc}`; }
-      else if (st.status === 'quitado') { pillClass = 'pill-green'; pillTxt = '✓ Quitado'; }
-
-      tbody.innerHTML += `<tr>
-        <td>${i.onde||'-'}</td><td>${i.quando||'-'}</td><td>${i.oque||'-'}</td>
-        <td>${fmt(i.valor)}</td><td>${i.parcelas}x</td><td>${fmt(i.mensal)}</td>
-        <td><span class="pill ${pillClass}">${pillTxt}</span></td>
-        <td>${i.pgto||'-'}</td>
-        <td><button class="btn btn-danger btn-sm" onclick="removerInvestimento('${i.id}')">×</button></td>
-      </tr>`;
-    });
+    return;
   }
+
+  // ordenar por data de compra
+  const ordenada = [...dados.investimento].sort((a, b) => {
+    const qa = parseQuandoCompra(a.quando) || '9999-99';
+    const qb = parseQuandoCompra(b.quando) || '9999-99';
+    return qa.localeCompare(qb);
+  });
+
+  // Aplicar filtros
+  const lista = ordenada.filter(i => {
+    if (filtrosInv.onde && i.onde !== filtrosInv.onde) return false;
+    if (filtrosInv.pgto) {
+      const pgto = i.pgto || '(vazio)';
+      if (pgto !== filtrosInv.pgto) return false;
+    }
+    if (filtrosInv.status) {
+      const st = statusItemNoMes(i, hoje);
+      const stLabel = st.status === 'futura' ? 'Aguardando 1ª' : st.status === 'pagando' ? 'Pagando' : 'Quitado';
+      if (stLabel !== filtrosInv.status) return false;
+    }
+    return true;
+  });
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum item com os filtros aplicados. <a href="#" onclick="limparFiltrosInv(); return false;">Limpar filtros</a></td></tr>';
+    return;
+  }
+
+  lista.forEach(i => {
+    const st = statusItemNoMes(i, hoje);
+    let pillClass = 'pill-gray', pillTxt = '—';
+    if (st.status === 'futura') { pillClass = 'pill-blue'; pillTxt = 'Aguardando 1ª'; }
+    else if (st.status === 'pagando') { pillClass = 'pill-blue'; pillTxt = `Pagando ${st.parcAtual}/${st.totalParc}`; }
+    else if (st.status === 'quitado') { pillClass = 'pill-green'; pillTxt = '✓ Quitado'; }
+
+    tbody.innerHTML += `<tr>
+      <td>${i.onde||'-'}</td><td>${i.quando||'-'}</td><td>${i.oque||'-'}</td>
+      <td>${fmt(i.valor)}</td><td>${i.parcelas}x</td><td>${fmt(i.mensal)}</td>
+      <td><span class="pill ${pillClass}">${pillTxt}</span></td>
+      <td>${i.pgto||'-'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removerInvestimento('${i.id}')">×</button></td>
+    </tr>`;
+  });
 }
 
 function exportarInvestimento() {
@@ -1758,8 +1863,9 @@ function calcularResumoMensal() {
     const desp = {};
     despesasMes.forEach(d => { desp[d.categoria] = (desp[d.categoria]||0) + d.valor; });
 
-    // Imposto: aplicado sobre o bruto deduzido
-    const imposto = calcularImpostoDoMes(bruto, regime, deducoes, aliquotaCustom);
+    // Imposto: aplicado sobre o bruto deduzido (usa dedução específica do mês — auto, override ou manual)
+    const deducoesMes = getDeducaoMes(m);
+    const imposto = calcularImpostoDoMes(bruto, regime, deducoesMes, aliquotaCustom);
 
     const resultadoOperacional = liquido - totalDesp;
     const resultadoPosImposto = resultadoOperacional - imposto;
@@ -2241,52 +2347,165 @@ function aplicarRedutor2026(impostoBruto, base) {
   return impostoBruto; // sem redutor
 }
 
+function diasNoMes(ym) {
+  const [a, m] = ym.split('-').map(Number);
+  return new Date(a, m, 0).getDate();
+}
+
+function diasAlugadosNoMes(ym) {
+  // Conta noites das reservas que caem dentro do mês
+  const [a, m] = ym.split('-').map(Number);
+  const inicioMes = new Date(a, m - 1, 1);
+  const fimMes = new Date(a, m, 0); // último dia
+  let dias = 0;
+  dados.reservas.forEach(r => {
+    if (!r.inicio || !r.fim) return;
+    const [ia, im, id] = r.inicio.split('-').map(Number);
+    const [fa, fm, fd] = r.fim.split('-').map(Number);
+    const ini = new Date(ia, im - 1, id);
+    const fim = new Date(fa, fm - 1, fd);
+    // sobreposição com o mês: [max(ini,inicioMes) ... min(fim,fimMes)]
+    const overInicio = ini > inicioMes ? ini : inicioMes;
+    const overFim = fim < fimMes ? fim : fimMes;
+    // diferença em dias (data fim é check-out, então não conta o dia da saída)
+    const diff = Math.floor((overFim - overInicio) / (24 * 3600 * 1000));
+    if (diff > 0) dias += diff;
+    // se a sobreposição é exatamente no último dia (entrada no fim do mês), conta 1 noite se ainda está alugado
+    else if (diff === 0 && overInicio.getDate() < overFim.getDate() + 1 && overInicio <= overFim) {
+      // edge case: ignoramos
+    }
+  });
+  return Math.min(dias, diasNoMes(ym));
+}
+
+function calcularDeducaoAutomatica(ym) {
+  // Soma despesas dedutíveis (Condomínio, IPTU, Manutenção) e aplica proporção dos dias alugados
+  const dedutiveis = ['Condomínio', 'IPTU', 'Manutenção'];
+  const totalDespDedutiveis = dados.despesas
+    .filter(d => d.mes === ym && dedutiveis.includes(d.categoria))
+    .reduce((s, d) => s + d.valor, 0);
+  if (totalDespDedutiveis === 0) return 0;
+  const diasMes = diasNoMes(ym);
+  const diasAlug = diasAlugadosNoMes(ym);
+  const proporcao = diasAlug / diasMes;
+  return totalDespDedutiveis * proporcao;
+}
+
+function getDeducaoMes(ym) {
+  // Retorna o valor de dedução considerando: override manual > automático/manual padrão
+  if (!dados.impostosMes) dados.impostosMes = {};
+  const reg = dados.impostosMes[ym];
+  if (reg && typeof reg.deducaoOverride === 'number') {
+    return reg.deducaoOverride;
+  }
+  if (dados.config.deducoesAuto) {
+    return calcularDeducaoAutomatica(ym);
+  }
+  return dados.config.deducoes || 0;
+}
+
+function setDeducaoOverride(ym, valor) {
+  if (!dados.impostosMes) dados.impostosMes = {};
+  if (!dados.impostosMes[ym]) dados.impostosMes[ym] = {};
+  if (valor === null || valor === undefined || isNaN(valor)) {
+    delete dados.impostosMes[ym].deducaoOverride;
+  } else {
+    dados.impostosMes[ym].deducaoOverride = valor;
+  }
+  salvarDados();
+  renderImpostos();
+  renderDre();
+  renderKPIs();
+  renderDreCharts();
+}
+
+function togglePagoImposto(ym) {
+  if (!dados.impostosMes) dados.impostosMes = {};
+  if (!dados.impostosMes[ym]) dados.impostosMes[ym] = {};
+  const atual = !!dados.impostosMes[ym].pago;
+  dados.impostosMes[ym].pago = !atual;
+  if (!atual) {
+    dados.impostosMes[ym].dataPagamento = new Date().toISOString().slice(0, 10);
+  } else {
+    delete dados.impostosMes[ym].dataPagamento;
+  }
+  salvarDados();
+  renderImpostos();
+}
+
+function editarDeducaoMes(ym, valorAtual) {
+  const novo = prompt(
+    `Dedução para ${nomeMes(ym)}\n\n` +
+    `Valor atual: R$ ${valorAtual.toFixed(2)}\n\n` +
+    `Digite o novo valor (em R$). Deixe vazio para voltar ao cálculo automático:`,
+    valorAtual.toFixed(2)
+  );
+  if (novo === null) return; // cancelou
+  if (novo.trim() === '') {
+    setDeducaoOverride(ym, null);
+    return;
+  }
+  const v = parseFloat(novo.replace(',', '.'));
+  if (isNaN(v) || v < 0) { alert('Valor inválido'); return; }
+  setDeducaoOverride(ym, v);
+}
+
 function atualizarImpostos() {
   const regime = document.getElementById('regime-tributario').value;
   dados.config.regime = regime;
   document.getElementById('campo-aliquota-custom').style.display = regime === 'custom' ? 'block' : 'none';
   dados.config.aliquotaCustom = parseFloat(document.getElementById('aliquota-custom').value) || 0;
   dados.config.deducoes = parseFloat(document.getElementById('deducoes').value) || 0;
+  const autoEl = document.getElementById('deducoes-auto');
+  if (autoEl) dados.config.deducoesAuto = autoEl.checked;
+  // mostrar/esconder campo manual
+  const manualArea = document.getElementById('deducoes-manual-area');
+  if (manualArea) manualArea.style.opacity = dados.config.deducoesAuto ? '0.5' : '1';
   salvarDados();
+  // re-renderiza tudo que depende das deduções (DRE, KPIs, gráficos)
   renderImpostos();
+  renderDre();
+  renderKPIs();
+  renderCharts();
+  renderDreCharts();
 }
 
 function renderImpostos() {
   const mesIni = dados.config.mesInicioOperacao || '2026-04';
   const regime = dados.config.regime || 'renda-alta';
   const aliquotaCustom = dados.config.aliquotaCustom || 0;
-  const deducoes = dados.config.deducoes || 0;
+
+  if (!dados.impostosMes) dados.impostosMes = {};
 
   const mesesSet = new Set();
   dados.reservas.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
   const meses = [...mesesSet].sort();
 
-  let totalBruto = 0, totalImposto = 0;
+  let totalBruto = 0, totalImposto = 0, totalPago = 0;
   const tbody = document.querySelector('#tabela-impostos tbody');
   tbody.innerHTML = '';
 
   if (!meses.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem reservas para apurar.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Sem reservas para apurar.</td></tr>';
     document.getElementById('imp-bruta').textContent = fmt(0);
     document.getElementById('imp-estimado').textContent = fmt(0);
     document.getElementById('imp-liquida').textContent = fmt(0);
+    document.getElementById('imp-total-a-pagar').textContent = fmt(0);
+    document.getElementById('imp-total-pago').textContent = fmt(0);
     return;
   }
 
   meses.forEach(m => {
     const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
     const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
-    const base = Math.max(0, bruto - deducoes);
+    const deducoesMes = getDeducaoMes(m);
+    const base = Math.max(0, bruto - deducoesMes);
     let imposto = 0, aliqStr = '';
 
     if (regime === 'renda-alta') {
-      // Você já está na faixa de 27,5% pela soma de todas suas fontes.
-      // Cada R$ adicional do Airbnb é tributado integralmente pela alíquota marginal de 27,5%.
-      // Sem redutor (renda total > R$ 7.350).
       imposto = base * 0.275;
       aliqStr = '27,5% (marginal)';
     } else if (regime === 'carne-leao') {
-      // Apenas Airbnb é a fonte → aplica tabela progressiva + redutor 2026
       const impostoBruto = calcularImpostoCarneLeao(base);
       imposto = aplicarRedutor2026(impostoBruto, base);
       const aliq = base > 4664.68 ? '27,5%' : base > 3751.05 ? '22,5%' : base > 2826.65 ? '15,0%' : base > 2428.80 ? '7,5%' : '0%';
@@ -2303,25 +2522,59 @@ function renderImpostos() {
     totalBruto += bruto;
     totalImposto += imposto;
 
+    // Status (pago / não pago)
+    const reg = dados.impostosMes[m] || {};
+    const pago = !!reg.pago;
+    if (pago) totalPago += imposto;
+
+    // Indicador de origem da dedução (auto/override/manual)
+    const isOverride = typeof reg.deducaoOverride === 'number';
+    const labelDeducao = isOverride ? '✏️ manual' : (dados.config.deducoesAuto ? '🤖 auto' : '📋 padrão');
+
+    // Detalhe automático (dias alugados)
+    let tooltipDeducao = '';
+    if (dados.config.deducoesAuto && !isOverride) {
+      const diasMes = diasNoMes(m);
+      const diasAlug = diasAlugadosNoMes(m);
+      const dedutiveis = ['Condomínio', 'IPTU', 'Manutenção'];
+      const totalDed = dados.despesas
+        .filter(d => d.mes === m && dedutiveis.includes(d.categoria))
+        .reduce((s, d) => s + d.valor, 0);
+      tooltipDeducao = `title="${diasAlug}/${diasMes} dias alugados (${(diasAlug/diasMes*100).toFixed(0)}%) sobre R$ ${totalDed.toFixed(2)} de despesas dedutíveis"`;
+    }
+
+    const statusBtn = pago
+      ? `<button class="btn btn-sm" onclick="togglePagoImposto('${m}')" style="background:#DCFCE7; color:#166534" title="${reg.dataPagamento ? 'Pago em ' + reg.dataPagamento : ''}">✓ Pago</button>`
+      : `<button class="btn btn-sm btn-secondary" onclick="togglePagoImposto('${m}')">A pagar</button>`;
+
     tbody.innerHTML += `<tr>
       <td><strong>${nomeMes(m)}</strong></td>
       <td>${fmt(bruto)}</td>
-      <td>${fmt(deducoes)}</td>
+      <td ${tooltipDeducao} style="cursor:pointer" onclick="editarDeducaoMes('${m}', ${deducoesMes})">
+        ${fmt(deducoesMes)} <span style="font-size:10px; opacity:0.6">${labelDeducao}</span>
+      </td>
       <td>${fmt(base)}</td>
       <td><span class="pill pill-gray">${aliqStr}</span></td>
       <td style="color:#E61E4D; font-weight:600">${fmt(imposto)}</td>
       <td style="color:#00A878; font-weight:600">${fmt(bruto - imposto)}</td>
+      <td>${statusBtn}</td>
     </tr>`;
   });
 
   document.getElementById('imp-bruta').textContent = fmt(totalBruto);
   document.getElementById('imp-estimado').textContent = fmt(totalImposto);
   document.getElementById('imp-liquida').textContent = fmt(totalBruto - totalImposto);
+  document.getElementById('imp-total-a-pagar').textContent = fmt(totalImposto - totalPago);
+  document.getElementById('imp-total-pago').textContent = fmt(totalPago);
   const regimeLabel = regime === 'renda-alta' ? '27,5% marginal (renda alta)'
                     : regime === 'carne-leao' ? 'Carnê-Leão progressivo + redutor 2026'
                     : regime === 'custom' ? aliquotaCustom + '%'
                     : 'isento';
   document.getElementById('imp-aliquota-info').textContent = 'Regime: ' + regimeLabel;
+
+  // Atualizar opacidade da área de dedução manual
+  const manualArea = document.getElementById('deducoes-manual-area');
+  if (manualArea) manualArea.style.opacity = dados.config.deducoesAuto ? '0.5' : '1';
 }
 
 // ==================== CHARTS ====================
@@ -2780,6 +3033,8 @@ function renderTudo() {
   document.getElementById('aliquota-custom').value = dados.config.aliquotaCustom || 15;
   document.getElementById('deducoes').value = dados.config.deducoes || 0;
   document.getElementById('campo-aliquota-custom').style.display = dados.config.regime === 'custom' ? 'block' : 'none';
+  const autoEl = document.getElementById('deducoes-auto');
+  if (autoEl) autoEl.checked = dados.config.deducoesAuto !== false;
 
   renderReservas();
   renderInvestimento();
