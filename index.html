@@ -212,6 +212,27 @@
     font-size: 14px;
   }
   .row-actions { display: flex; gap: 6px; }
+
+  /* DRE styles */
+  .dre-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dre-table th { background: #222; color: white; padding: 12px 10px; font-weight: 600; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .dre-table th:first-child { text-align: left; }
+  .dre-table td { padding: 10px; border-bottom: 1px solid #f0f0f0; text-align: right; font-variant-numeric: tabular-nums; }
+  .dre-table td:first-child { text-align: left; }
+  .dre-row-receita td { color: #00A878; }
+  .dre-row-despesa td { color: #E61E4D; }
+  .dre-row-imposto td { color: #FF8800; }
+  .dre-row-parcela td { color: #7B61FF; }
+  .dre-row-titulo td { font-weight: 700; background: #FAFAFA; color: #222 !important; padding: 12px 10px; }
+  .dre-row-subtotal td { font-weight: 700; background: #F0F8FF; color: #0073E6 !important; border-top: 2px solid #0073E6; }
+  .dre-row-resultado td { font-weight: 800; background: #DCFCE7; color: #166534 !important; font-size: 14px; border-top: 2px solid #00A878; padding: 14px 10px; }
+  .dre-row-resultado.negativo td { background: #FEE2E2; color: #991B1B !important; border-top-color: #E61E4D; }
+  .dre-row-grupo td { font-weight: 600; background: #F8F8F8; padding-left: 20px; font-size: 12px; color: #666 !important; }
+  .dre-row-item td:first-child { padding-left: 30px; color: #555; font-size: 12.5px; }
+  .dre-table tbody tr:hover { background: #FAFAFA !important; }
+  .dre-toggle { display: flex; gap: 6px; background: #f0f0f0; padding: 4px; border-radius: 8px; }
+  .dre-toggle button { padding: 6px 14px; border: none; background: transparent; cursor: pointer; border-radius: 6px; font-weight: 500; font-size: 12px; color: #666; }
+  .dre-toggle button.active { background: white; color: #222; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
   .header-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
   .header-actions h2 { font-size: 17px; font-weight: 600; }
   .small-input { padding: 6px 10px; font-size: 13px; }
@@ -250,6 +271,7 @@
 <div class="container">
   <div class="tabs">
     <button class="tab active" onclick="showTab('visao-geral', this)">📊 Visão Geral</button>
+    <button class="tab" onclick="showTab('dre', this)">📋 DRE</button>
     <button class="tab" onclick="showTab('receitas', this)">💰 Receitas</button>
     <button class="tab" onclick="showTab('investimento', this)">🔨 Investimento Inicial</button>
     <button class="tab" onclick="showTab('despesas', this)">📉 Despesas Mensais</button>
@@ -260,55 +282,56 @@
 
   <!-- =================== VISÃO GERAL =================== -->
   <div id="visao-geral" class="content active">
+    <!-- KPIs principais -->
     <div class="grid grid-4">
       <div class="card green">
-        <h3>Receita Total Líquida</h3>
+        <h3>Receita Líquida</h3>
         <div class="value" id="kpi-receita">R$ 0,00</div>
-        <div class="sub" id="kpi-receita-sub">A partir de abril/2026</div>
+        <div class="sub" id="kpi-receita-sub">Após taxas Airbnb</div>
       </div>
       <div class="card red">
-        <h3>Despesas Mensais (atual)</h3>
+        <h3>Despesas Operacionais</h3>
         <div class="value" id="kpi-despesas">R$ 0,00</div>
-        <div class="sub">Sem parcela do apto</div>
+        <div class="sub">Condomínio, energia, etc.</div>
       </div>
-      <div class="card blue">
-        <h3>Lucro Líquido (acum.)</h3>
-        <div class="value" id="kpi-lucro">R$ 0,00</div>
-        <div class="sub" id="kpi-lucro-sub">Receita - Despesas</div>
+      <div class="card orange">
+        <h3>Impostos</h3>
+        <div class="value" id="kpi-impostos">R$ 0,00</div>
+        <div class="sub" id="kpi-impostos-sub">A pagar / pago</div>
       </div>
       <div class="card purple">
-        <h3>Investimento Inicial</h3>
-        <div class="value" id="kpi-investimento">R$ 0,00</div>
-        <div class="sub" id="kpi-investimento-sub">Total para montar</div>
+        <h3>Financiamento</h3>
+        <div class="value" id="kpi-financiamento">R$ 0,00</div>
+        <div class="sub">Parcelas invest. + apto</div>
       </div>
     </div>
 
     <div class="grid grid-4" style="margin-top:16px">
-      <div class="card">
-        <h3>Noites Reservadas</h3>
-        <div class="value" id="kpi-noites">0</div>
-        <div class="sub">Total no período</div>
+      <div class="card blue">
+        <h3>Lucro Líquido (s/ apto)</h3>
+        <div class="value" id="kpi-lucro-sem">R$ 0,00</div>
+        <div class="sub">Sem financiamento do apto</div>
+      </div>
+      <div class="card blue">
+        <h3>Lucro Líquido (c/ apto)</h3>
+        <div class="value" id="kpi-lucro-com">R$ 0,00</div>
+        <div class="sub">Com tudo descontado</div>
       </div>
       <div class="card">
         <h3>Reservas</h3>
         <div class="value" id="kpi-reservas">0</div>
-        <div class="sub">Quantidade total</div>
+        <div class="sub" id="kpi-noites-sub">0 noites · Ticket: R$ 0</div>
       </div>
       <div class="card">
-        <h3>Ticket Médio / Noite</h3>
-        <div class="value" id="kpi-ticket">R$ 0,00</div>
-        <div class="sub">Valor líquido</div>
-      </div>
-      <div class="card orange">
-        <h3>Parcelas mensais ativas</h3>
-        <div class="value" id="kpi-parcelas">R$ 0,00</div>
-        <div class="sub">Investimento parcelado</div>
+        <h3>Investimento Total</h3>
+        <div class="value" id="kpi-investimento">R$ 0,00</div>
+        <div class="sub" id="kpi-investimento-sub">Para montar o Airbnb</div>
       </div>
     </div>
 
     <div class="grid grid-2" style="margin-top:24px">
       <div class="card">
-        <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Receita vs Despesa Mensal</h2>
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Receita × Custos por Mês</h2>
         <div class="chart-container"><canvas id="chartReceitaDespesa"></canvas></div>
       </div>
       <div class="card">
@@ -318,15 +341,87 @@
     </div>
 
     <div class="card" style="margin-top:24px">
-      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Resumo Mensal</h2>
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">Lucro Líquido Acumulado</h2>
+      <div class="chart-container" style="height:300px"><canvas id="chartLucroAcum"></canvas></div>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:16px">
+      💡 Para ver o detalhamento contábil completo (receitas, deduções, impostos, financiamento e margem), acesse a aba <strong>📋 DRE</strong>.
+    </div>
+  </div>
+
+  <!-- =================== DRE =================== -->
+  <div id="dre" class="content">
+    <!-- Resumo cabeçalho -->
+    <div class="grid grid-3">
+      <div class="card green">
+        <h3>Receita Bruta Total</h3>
+        <div class="value" id="dre-kpi-bruta">R$ 0,00</div>
+        <div class="sub" id="dre-kpi-bruta-sub">Antes de qualquer dedução</div>
+      </div>
+      <div class="card orange">
+        <h3>Total de Deduções</h3>
+        <div class="value" id="dre-kpi-deducoes">R$ 0,00</div>
+        <div class="sub" id="dre-kpi-deducoes-sub">Taxas + Despesas + Impostos + Financ.</div>
+      </div>
+      <div class="card blue">
+        <h3>Lucro Líquido Final</h3>
+        <div class="value" id="dre-kpi-lucro">R$ 0,00</div>
+        <div class="sub" id="dre-kpi-margem">Margem: 0%</div>
+      </div>
+    </div>
+
+    <!-- Tabela DRE -->
+    <div class="card" style="margin-top:24px">
+      <div class="header-actions">
+        <h2 style="font-size:18px; font-weight:700">📋 Demonstrativo de Resultados (DRE)</h2>
+        <div class="dre-toggle">
+          <button id="dre-mode-mensal" class="active" onclick="alternarDre('mensal')">📅 Mensal</button>
+          <button id="dre-mode-acumulado" onclick="alternarDre('acumulado')">📈 Acumulado</button>
+          <button id="dre-mode-anual" onclick="alternarDre('anual')">🗓️ Anual</button>
+        </div>
+      </div>
+      <p style="font-size:12px; color:#666; margin-bottom:14px" id="dre-legenda">
+        Visualização <strong>mensal</strong>: cada coluna mostra o resultado isolado daquele mês.
+      </p>
       <div style="overflow-x:auto">
-        <table id="tabela-resumo-mensal">
-          <thead>
-            <tr><th>Mês</th><th>Receita Bruta</th><th>Receita Líquida</th><th>Despesas</th><th>Parcelas</th><th>Resultado s/ apto</th><th>Resultado c/ apto</th></tr>
-          </thead>
+        <table class="dre-table" id="tabela-dre">
+          <thead></thead>
           <tbody></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Gráfico waterfall: como a receita bruta vira lucro líquido -->
+    <div class="card" style="margin-top:24px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">💧 Cascata: da Receita Bruta ao Lucro Líquido</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Mostra como cada dedução afeta a receita bruta até chegar no lucro líquido final (acumulado de todos os meses).
+      </p>
+      <div class="chart-container" style="height:380px"><canvas id="chartWaterfall"></canvas></div>
+    </div>
+
+    <!-- Evolução dos componentes mês a mês -->
+    <div class="grid grid-2" style="margin-top:24px">
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">📊 Evolução dos Componentes</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:12px">Como cada item da DRE evolui ao longo dos meses</p>
+        <div class="chart-container" style="height:340px"><canvas id="chartEvolucao"></canvas></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">📐 Margem Líquida por Mês</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:12px">% do lucro líquido sobre a receita bruta</p>
+        <div class="chart-container" style="height:340px"><canvas id="chartMargem"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Análise de receitas vs custos totais -->
+    <div class="card" style="margin-top:24px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🎯 Onde está indo cada R$ 100 de receita?</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Para cada R$ 100 que você recebe em receita bruta, quanto vira o quê?
+      </p>
+      <div class="chart-container" style="height:360px"><canvas id="chartProporcao"></canvas></div>
     </div>
   </div>
 
@@ -1041,7 +1136,10 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   // re-render charts on tab switch
-  setTimeout(() => renderCharts(), 50);
+  setTimeout(() => {
+    renderCharts();
+    if (id === 'dre') renderDreCharts();
+  }, 50);
 }
 
 // ==================== RESERVAS ====================
@@ -1304,6 +1402,17 @@ function renderDespesas() {
 }
 
 // ==================== CÁLCULOS ====================
+function calcularImpostoDoMes(bruto, regime, deducoes, aliquotaCustom) {
+  const base = Math.max(0, bruto - deducoes);
+  if (regime === 'renda-alta') return base * 0.275;
+  if (regime === 'carne-leao') {
+    const impBruto = calcularImpostoCarneLeao(base);
+    return aplicarRedutor2026(impBruto, base);
+  }
+  if (regime === 'custom') return base * aliquotaCustom / 100;
+  return 0; // isento
+}
+
 function calcularResumoMensal() {
   const mesIni = dados.config.mesInicioOperacao || '2026-04';
   const mesesSet = new Set();
@@ -1311,6 +1420,9 @@ function calcularResumoMensal() {
   dados.despesas.forEach(d => { if (d.mes >= mesIni) mesesSet.add(d.mes); });
 
   const meses = [...mesesSet].sort();
+  const regime = dados.config.regime || 'renda-alta';
+  const deducoes = dados.config.deducoes || 0;
+  const aliquotaCustom = dados.config.aliquotaCustom || 0;
 
   return meses.map(m => {
     const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
@@ -1320,70 +1432,297 @@ function calcularResumoMensal() {
                                           .reduce((s,d) => s + d.valor, 0);
     const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
     const liquido = reservasMes.reduce((s,r) => s + r.liquido, 0);
+    const taxasAirbnb = bruto - liquido; // taxa cobrada pelo Airbnb
     const totalDesp = despesasMes.reduce((s,d) => s + d.valor, 0);
-    const totalParc = dados.investimento.reduce((s,i) => s + i.mensal, 0); // simplificado: parcelas atuais
+    const totalParc = dados.investimento.reduce((s,i) => s + i.mensal, 0); // simplificado
+
+    // Despesas detalhadas por categoria
+    const desp = {};
+    despesasMes.forEach(d => { desp[d.categoria] = (desp[d.categoria]||0) + d.valor; });
+
+    // Imposto: aplicado sobre o bruto deduzido
+    const imposto = calcularImpostoDoMes(bruto, regime, deducoes, aliquotaCustom);
+
+    const resultadoOperacional = liquido - totalDesp;
+    const resultadoPosImposto = resultadoOperacional - imposto;
+    const lucroSemApto = resultadoPosImposto - totalParc;
+    const lucroComApto = lucroSemApto - parcelaAptoMes;
+
     return {
       mes: m,
-      bruto, liquido,
+      bruto, liquido, taxasAirbnb,
       despesas: totalDesp,
+      despDetalhe: desp,
       parcelas: totalParc,
       parcelaApto: parcelaAptoMes,
-      resultadoSemApto: liquido - totalDesp - totalParc,
-      resultadoComApto: liquido - totalDesp - totalParc - parcelaAptoMes
+      imposto,
+      resultadoOperacional,
+      resultadoPosImposto,
+      lucroSemApto,
+      lucroComApto,
+      // legados (compat)
+      resultadoSemApto: lucroSemApto,
+      resultadoComApto: lucroComApto
     };
   });
 }
 
-function renderResumoMensal() {
-  const tbody = document.querySelector('#tabela-resumo-mensal tbody');
-  const dadosMes = calcularResumoMensal();
-  tbody.innerHTML = '';
-  if (!dadosMes.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem dados a partir de ' + nomeMes(dados.config.mesInicioOperacao) + '.</td></tr>';
+// ==================== DRE ====================
+let dreModoAtual = 'mensal';
+
+function alternarDre(modo) {
+  dreModoAtual = modo;
+  ['mensal','acumulado','anual'].forEach(m => {
+    const btn = document.getElementById('dre-mode-' + m);
+    if (btn) btn.classList.toggle('active', m === modo);
+  });
+  const legenda = {
+    mensal: 'Visualização <strong>mensal</strong>: cada coluna mostra o resultado isolado daquele mês.',
+    acumulado: 'Visualização <strong>acumulada</strong>: cada coluna soma todos os meses anteriores até aquele ponto.',
+    anual: 'Visualização <strong>anual consolidada</strong>: total do ano agrupando todos os meses.'
+  };
+  const el = document.getElementById('dre-legenda');
+  if (el) el.innerHTML = legenda[modo];
+  renderDre();
+}
+
+function renderDre() {
+  const meses = calcularResumoMensal();
+  const tabela = document.getElementById('tabela-dre');
+  if (!tabela) return;
+  const thead = tabela.querySelector('thead');
+  const tbody = tabela.querySelector('tbody');
+
+  // === Atualizar KPIs do topo da aba DRE ===
+  const totalBruto = meses.reduce((s,m) => s + m.bruto, 0);
+  const totalTaxas = meses.reduce((s,m) => s + m.taxasAirbnb, 0);
+  const totalDesp = meses.reduce((s,m) => s + m.despesas, 0);
+  const totalImp = meses.reduce((s,m) => s + m.imposto, 0);
+  const totalParc = meses.reduce((s,m) => s + m.parcelas, 0);
+  const totalApto = meses.reduce((s,m) => s + m.parcelaApto, 0);
+  const totalDeducoes = totalTaxas + totalDesp + totalImp + totalParc + totalApto;
+  const lucroFinal = meses.reduce((s,m) => s + m.lucroComApto, 0);
+  const margem = totalBruto > 0 ? (lucroFinal/totalBruto*100) : 0;
+
+  const elBruta = document.getElementById('dre-kpi-bruta');
+  if (elBruta) {
+    elBruta.textContent = fmt(totalBruto);
+    document.getElementById('dre-kpi-bruta-sub').textContent = `${meses.length} ${meses.length===1?'mês':'meses'} de operação`;
+    document.getElementById('dre-kpi-deducoes').textContent = fmt(totalDeducoes);
+    const pctDeducoes = totalBruto > 0 ? (totalDeducoes/totalBruto*100).toFixed(1) : '0';
+    document.getElementById('dre-kpi-deducoes-sub').textContent = `${pctDeducoes}% da receita bruta`;
+    document.getElementById('dre-kpi-lucro').textContent = fmt(lucroFinal);
+    const elMargem = document.getElementById('dre-kpi-margem');
+    elMargem.textContent = `Margem: ${margem.toFixed(1)}%`;
+    elMargem.style.color = lucroFinal >= 0 ? '#00A878' : '#E61E4D';
+    document.getElementById('dre-kpi-lucro').style.color = lucroFinal >= 0 ? '#00A878' : '#E61E4D';
+  }
+
+  if (!meses.length) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '<tr><td class="empty-state">Sem dados a partir de ' + nomeMes(dados.config.mesInicioOperacao) + '.</td></tr>';
     return;
   }
-  dadosMes.forEach(d => {
-    const cor1 = d.resultadoSemApto >= 0 ? '#00A878' : '#E61E4D';
-    const cor2 = d.resultadoComApto >= 0 ? '#00A878' : '#E61E4D';
-    tbody.innerHTML += `<tr>
-      <td><strong>${nomeMes(d.mes)}</strong></td>
-      <td>${fmt(d.bruto)}</td>
-      <td>${fmt(d.liquido)}</td>
-      <td>${fmt(d.despesas)}</td>
-      <td>${fmt(d.parcelas)}</td>
-      <td style="color:${cor1}; font-weight:600">${fmt(d.resultadoSemApto)}</td>
-      <td style="color:${cor2}; font-weight:600">${fmt(d.resultadoComApto)}</td>
-    </tr>`;
+
+  // Determinar colunas conforme modo
+  let colunas;
+  if (dreModoAtual === 'anual') {
+    // 1 coluna: total consolidado
+    const anos = [...new Set(meses.map(m => m.mes.slice(0,4)))].sort();
+    colunas = anos.map(ano => ({
+      label: ano,
+      meses: meses.filter(m => m.mes.startsWith(ano))
+    }));
+  } else if (dreModoAtual === 'acumulado') {
+    // 1 coluna por mês, com valores acumulados
+    colunas = meses.map((m, i) => ({
+      label: nomeMes(m.mes),
+      meses: meses.slice(0, i+1) // do início até este mês
+    }));
+  } else {
+    // mensal: 1 coluna por mês
+    colunas = meses.map(m => ({
+      label: nomeMes(m.mes),
+      meses: [m]
+    }));
+  }
+
+  // Adicionar coluna TOTAL no final (sempre visível)
+  if (dreModoAtual !== 'anual') {
+    colunas.push({ label: 'TOTAL', meses: meses, isTotal: true });
+  }
+
+  // Função para somar uma propriedade ou categoria
+  const soma = (lista, prop, cat) => {
+    if (cat) return lista.reduce((s, m) => s + (m.despDetalhe[cat] || 0), 0);
+    return lista.reduce((s, m) => s + (m[prop] || 0), 0);
+  };
+
+  // Categorias únicas de despesas (excluindo Parcela Apto)
+  const categorias = [...new Set(
+    meses.flatMap(m => Object.keys(m.despDetalhe))
+  )].sort();
+
+  // Header
+  let html = '<tr><th>Conta</th>';
+  colunas.forEach(c => {
+    const isTot = c.isTotal ? ' style="background:#FF385C"' : '';
+    html += `<th${isTot}>${c.label}</th>`;
   });
+  html += '</tr>';
+  thead.innerHTML = html;
+
+  // Body
+  html = '';
+
+  // === RECEITAS ===
+  html += `<tr class="dre-row-titulo"><td>(+) RECEITAS</td>${colunas.map(()=>'<td></td>').join('')}</tr>`;
+  html += `<tr class="dre-row-receita"><td>Receita Bruta (ganhos brutos)</td>`;
+  colunas.forEach(c => html += `<td>${fmt(soma(c.meses, 'bruto'))}</td>`);
+  html += '</tr>';
+  html += `<tr class="dre-row-despesa"><td>(-) Taxas Airbnb (3-5%)</td>`;
+  colunas.forEach(c => html += `<td>${fmt(-soma(c.meses, 'taxasAirbnb'))}</td>`);
+  html += '</tr>';
+  html += `<tr class="dre-row-subtotal"><td>(=) Receita Líquida</td>`;
+  colunas.forEach(c => html += `<td>${fmt(soma(c.meses, 'liquido'))}</td>`);
+  html += '</tr>';
+
+  // === DESPESAS OPERACIONAIS ===
+  if (categorias.length > 0) {
+    html += `<tr class="dre-row-titulo"><td>(-) DESPESAS OPERACIONAIS</td>${colunas.map(()=>'<td></td>').join('')}</tr>`;
+    categorias.forEach(cat => {
+      html += `<tr class="dre-row-item dre-row-despesa"><td>${cat}</td>`;
+      colunas.forEach(c => {
+        const v = soma(c.meses, null, cat);
+        html += `<td>${v > 0 ? fmt(-v) : '—'}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += `<tr class="dre-row-grupo"><td>Subtotal Despesas Operacionais</td>`;
+    colunas.forEach(c => html += `<td>${fmt(-soma(c.meses, 'despesas'))}</td>`);
+    html += '</tr>';
+  }
+
+  // === RESULTADO OPERACIONAL (EBITDA approx) ===
+  html += `<tr class="dre-row-subtotal"><td>(=) Resultado Operacional</td>`;
+  colunas.forEach(c => html += `<td>${fmt(soma(c.meses, 'resultadoOperacional'))}</td>`);
+  html += '</tr>';
+
+  // === IMPOSTOS ===
+  html += `<tr class="dre-row-titulo"><td>(-) IMPOSTOS</td>${colunas.map(()=>'<td></td>').join('')}</tr>`;
+  const regime = dados.config.regime || 'renda-alta';
+  const labelImp = regime === 'renda-alta' ? 'IRPF (27,5% marginal)'
+                  : regime === 'carne-leao' ? 'IRPF (Carnê-Leão + redutor)'
+                  : regime === 'custom' ? `IRPF (${dados.config.aliquotaCustom||0}%)`
+                  : 'IRPF (isento)';
+  html += `<tr class="dre-row-item dre-row-imposto"><td>${labelImp}</td>`;
+  colunas.forEach(c => {
+    const v = soma(c.meses, 'imposto');
+    html += `<td>${v > 0 ? fmt(-v) : '—'}</td>`;
+  });
+  html += '</tr>';
+
+  // === RESULTADO PÓS-IMPOSTO ===
+  html += `<tr class="dre-row-subtotal"><td>(=) Resultado Pós-Imposto</td>`;
+  colunas.forEach(c => html += `<td>${fmt(soma(c.meses, 'resultadoPosImposto'))}</td>`);
+  html += '</tr>';
+
+  // === FINANCIAMENTO ===
+  html += `<tr class="dre-row-titulo"><td>(-) FINANCIAMENTO</td>${colunas.map(()=>'<td></td>').join('')}</tr>`;
+  html += `<tr class="dre-row-item dre-row-parcela"><td>Parcelas do investimento inicial</td>`;
+  colunas.forEach(c => html += `<td>${fmt(-soma(c.meses, 'parcelas'))}</td>`);
+  html += '</tr>';
+
+  // Lucro sem apto (subtotal antes da parcela do apto)
+  html += `<tr class="dre-row-subtotal"><td>(=) Lucro Líquido (sem parcela apto)</td>`;
+  colunas.forEach(c => html += `<td>${fmt(soma(c.meses, 'lucroSemApto'))}</td>`);
+  html += '</tr>';
+
+  // Parcela apto (só se houver)
+  const temApto = meses.some(m => m.parcelaApto > 0);
+  if (temApto) {
+    html += `<tr class="dre-row-item dre-row-parcela"><td>Parcela do apartamento (financiamento SAC)</td>`;
+    colunas.forEach(c => {
+      const v = soma(c.meses, 'parcelaApto');
+      html += `<td>${v > 0 ? fmt(-v) : '—'}</td>`;
+    });
+    html += '</tr>';
+  }
+
+  // === LUCRO LÍQUIDO FINAL ===
+  // Verificar se é negativo no total para colorir
+  const lucroTotal = soma(meses, 'lucroComApto');
+  const classNeg = lucroTotal < 0 ? ' negativo' : '';
+  html += `<tr class="dre-row-resultado${classNeg}"><td>(=) LUCRO LÍQUIDO FINAL${temApto ? ' (com apto)' : ''}</td>`;
+  colunas.forEach(c => {
+    const v = soma(c.meses, temApto ? 'lucroComApto' : 'lucroSemApto');
+    const cls = v < 0 ? ' style="color:#991B1B !important"' : '';
+    html += `<td${cls}>${fmt(v)}</td>`;
+  });
+  html += '</tr>';
+
+  // === MARGEM ===
+  html += `<tr class="dre-row-grupo"><td>Margem líquida sobre receita bruta</td>`;
+  colunas.forEach(c => {
+    const bruto = soma(c.meses, 'bruto');
+    const lucro = soma(c.meses, temApto ? 'lucroComApto' : 'lucroSemApto');
+    const pct = bruto > 0 ? (lucro/bruto*100).toFixed(1) + '%' : '—';
+    html += `<td>${pct}</td>`;
+  });
+  html += '</tr>';
+
+  tbody.innerHTML = html;
+}
+
+// renderResumoMensal mantido como fallback para compatibilidade
+function renderResumoMensal() {
+  // Substituído pela DRE
+  return;
 }
 
 // ==================== KPIs ====================
 function renderKPIs() {
   const mesIni = dados.config.mesInicioOperacao || '2026-04';
   const reservasOp = dados.reservas.filter(r => (r.inicio||'').slice(0,7) >= mesIni);
-  const receitaTotal = reservasOp.reduce((s,r) => s + r.liquido, 0);
   const noitesTotal = reservasOp.reduce((s,r) => s + (r.noites||0), 0);
   const reservasCount = reservasOp.length;
-  const despesasOp = dados.despesas.filter(d => d.mes >= mesIni).reduce((s,d) => s + d.valor, 0);
   const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
   const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
 
-  // calcular despesa mensal média atual (do último mês com dados)
+  // calcular tudo a partir do resumo mensal completo
   const meses = calcularResumoMensal();
-  const ultMes = meses[meses.length-1];
-  const despMensalAtual = ultMes ? (ultMes.despesas + ultMes.parcelas) : parcMensal;
+  const numMeses = meses.length || 1;
 
-  document.getElementById('kpi-receita').textContent = fmt(receitaTotal);
-  document.getElementById('kpi-receita-sub').textContent = `${reservasCount} reservas, ${noitesTotal} noites`;
-  document.getElementById('kpi-despesas').textContent = fmt(despMensalAtual);
-  document.getElementById('kpi-lucro').textContent = fmt(receitaTotal - despesasOp - parcMensal * meses.length);
-  document.getElementById('kpi-lucro-sub').textContent = `Sem parcela apto, ${meses.length} ${meses.length===1?'mês':'meses'}`;
-  document.getElementById('kpi-investimento').textContent = fmt(investTotal);
-  document.getElementById('kpi-investimento-sub').textContent = `${dados.investimento.length} itens`;
-  document.getElementById('kpi-noites').textContent = noitesTotal;
+  const receitaBrutaTotal = meses.reduce((s,m) => s + m.bruto, 0);
+  const receitaLiquidaTotal = meses.reduce((s,m) => s + m.liquido, 0);
+  const despesasTotal = meses.reduce((s,m) => s + m.despesas, 0);
+  const impostosTotal = meses.reduce((s,m) => s + m.imposto, 0);
+  const parcInvestTotal = meses.reduce((s,m) => s + m.parcelas, 0);
+  const parcAptoTotal = meses.reduce((s,m) => s + m.parcelaApto, 0);
+  const financiamentoTotal = parcInvestTotal + parcAptoTotal;
+  const lucroSemApto = meses.reduce((s,m) => s + m.lucroSemApto, 0);
+  const lucroComApto = meses.reduce((s,m) => s + m.lucroComApto, 0);
+
+  // Ticket médio
+  const ticket = noitesTotal ? receitaLiquidaTotal / noitesTotal : 0;
+
+  // KPIs principais (linha 1)
+  document.getElementById('kpi-receita').textContent = fmt(receitaLiquidaTotal);
+  document.getElementById('kpi-receita-sub').textContent = `Bruta: ${fmt(receitaBrutaTotal)}`;
+  document.getElementById('kpi-despesas').textContent = fmt(despesasTotal);
+  document.getElementById('kpi-impostos').textContent = fmt(impostosTotal);
+  const regimeNome = (dados.config.regime||'renda-alta') === 'renda-alta' ? '27,5% marginal'
+                   : (dados.config.regime) === 'carne-leao' ? 'Carnê-Leão' : 'configurado';
+  document.getElementById('kpi-impostos-sub').textContent = regimeNome;
+  document.getElementById('kpi-financiamento').textContent = fmt(financiamentoTotal);
+
+  // KPIs linha 2
+  document.getElementById('kpi-lucro-sem').textContent = fmt(lucroSemApto);
+  document.getElementById('kpi-lucro-com').textContent = fmt(lucroComApto);
   document.getElementById('kpi-reservas').textContent = reservasCount;
-  document.getElementById('kpi-ticket').textContent = fmt(noitesTotal ? receitaTotal / noitesTotal : 0);
-  document.getElementById('kpi-parcelas').textContent = fmt(parcMensal);
+  document.getElementById('kpi-noites-sub').textContent = `${noitesTotal} noites · Ticket: ${fmt(ticket)}`;
+  document.getElementById('kpi-investimento').textContent = fmt(investTotal);
+  document.getElementById('kpi-investimento-sub').textContent = `${dados.investimento.length} itens · ${fmt(parcMensal)}/mês`;
 
   // investimento aba
   document.getElementById('inv-total').textContent = fmt(investTotal);
@@ -1572,7 +1911,7 @@ function renderImpostos() {
 function renderCharts() {
   const meses = calcularResumoMensal();
 
-  // Receita vs Despesa
+  // Receita × Custos por mês (barras empilhadas detalhadas)
   const ctx1 = document.getElementById('chartReceitaDespesa');
   if (ctx1) {
     if (charts.rd) charts.rd.destroy();
@@ -1581,30 +1920,45 @@ function renderCharts() {
       data: {
         labels: meses.map(m => nomeMes(m.mes)),
         datasets: [
-          { label: 'Receita líquida', data: meses.map(m => m.liquido), backgroundColor: '#00A878', borderRadius: 6 },
-          { label: 'Despesas + parcelas', data: meses.map(m => m.despesas + m.parcelas), backgroundColor: '#E61E4D', borderRadius: 6 }
+          { label: 'Receita líquida', data: meses.map(m => m.liquido), backgroundColor: '#00A878', borderRadius: 6, stack: 'receita' },
+          { label: 'Despesas operac.', data: meses.map(m => -m.despesas), backgroundColor: '#E61E4D', borderRadius: 6, stack: 'custos' },
+          { label: 'Impostos', data: meses.map(m => -m.imposto), backgroundColor: '#FF8800', borderRadius: 6, stack: 'custos' },
+          { label: 'Parcelas invest.', data: meses.map(m => -m.parcelas), backgroundColor: '#7B61FF', borderRadius: 6, stack: 'custos' },
+          { label: 'Parcela apto', data: meses.map(m => -m.parcelaApto), backgroundColor: '#9F4FFF', borderRadius: 6, stack: 'custos' }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
-        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v } } }
+        plugins: { 
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + 'R$ ' + Math.abs(c.parsed.y).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) } }
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } }
+        }
       }
     });
   }
 
-  // Composição despesas
+  // Composição despesas (donut)
   const ctx2 = document.getElementById('chartDespesas');
   if (ctx2) {
     if (charts.desp) charts.desp.destroy();
     const mesIni = dados.config.mesInicioOperacao || '2026-04';
     const grupos = {};
-    dados.despesas.filter(d => d.mes >= mesIni).forEach(d => {
+    dados.despesas.filter(d => d.mes >= mesIni && d.categoria !== 'Parcela Apto').forEach(d => {
       grupos[d.categoria] = (grupos[d.categoria] || 0) + d.valor;
     });
-    const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
-    const numMeses = meses.length || 1;
-    grupos['Parcelas (invest.)'] = parcMensal * numMeses;
+    const parcInvest = meses.reduce((s,m) => s + m.parcelas, 0);
+    const parcAptoTotal = meses.reduce((s,m) => s + m.parcelaApto, 0);
+    const impostosTot = meses.reduce((s,m) => s + m.imposto, 0);
+    const taxasTot = meses.reduce((s,m) => s + m.taxasAirbnb, 0);
+
+    if (parcInvest > 0) grupos['Parcelas Invest.'] = parcInvest;
+    if (parcAptoTotal > 0) grupos['Parcela Apto'] = parcAptoTotal;
+    if (impostosTot > 0) grupos['Impostos'] = impostosTot;
+    if (taxasTot > 0) grupos['Taxa Airbnb'] = taxasTot;
 
     const labels = Object.keys(grupos);
     const valores = Object.values(grupos);
@@ -1618,15 +1972,50 @@ function renderCharts() {
           labels,
           datasets: [{
             data: valores,
-            backgroundColor: ['#FF385C','#0073E6','#00A878','#FF8800','#7B61FF','#E61E4D','#FFB800','#666']
+            backgroundColor: ['#FF385C','#0073E6','#00A878','#FF8800','#7B61FF','#9F4FFF','#FFB800','#666','#E61E4D','#1E40AF']
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'right' } }
+          plugins: { 
+            legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+            tooltip: { callbacks: { label: (c) => c.label + ': R$ ' + c.parsed.toLocaleString('pt-BR', {minimumFractionDigits:2}) } }
+          }
         }
       });
     }
+  }
+
+  // Lucro Líquido Acumulado
+  const ctxLucro = document.getElementById('chartLucroAcum');
+  if (ctxLucro) {
+    if (charts.lucro) charts.lucro.destroy();
+    let acumSem = 0, acumCom = 0;
+    const dataSem = [], dataCom = [];
+    meses.forEach(m => {
+      acumSem += m.lucroSemApto;
+      acumCom += m.lucroComApto;
+      dataSem.push(acumSem);
+      dataCom.push(acumCom);
+    });
+    charts.lucro = new Chart(ctxLucro, {
+      type: 'line',
+      data: {
+        labels: meses.map(m => nomeMes(m.mes)),
+        datasets: [
+          { label: 'Lucro acum. (sem parcela apto)', data: dataSem, borderColor: '#0073E6', backgroundColor: 'rgba(0,115,230,0.1)', fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#0073E6' },
+          { label: 'Lucro acum. (com parcela apto)', data: dataCom, borderColor: '#E61E4D', backgroundColor: 'rgba(230,30,77,0.05)', fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#E61E4D' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { 
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (c) => c.dataset.label + ': R$ ' + c.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) } }
+        },
+        scales: { y: { ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
+      }
+    });
   }
 
   // Breakeven evolução
@@ -1642,8 +2031,8 @@ function renderCharts() {
     const dataReceita = [], dataCusto1 = [], dataCusto2 = [];
     meses.forEach(m => {
       acumReceita += m.liquido;
-      acumCustoSemApto += m.despesas + m.parcelas;
-      acumCustoComApto += m.despesas + m.parcelas + (m.parcelaApto || 0);
+      acumCustoSemApto += m.despesas + m.parcelas + m.imposto;
+      acumCustoComApto += m.despesas + m.parcelas + m.imposto + (m.parcelaApto || 0);
       dataReceita.push(acumReceita);
       dataCusto1.push(acumCustoSemApto);
       dataCusto2.push(acumCustoComApto);
@@ -1663,6 +2052,215 @@ function renderCharts() {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom' } },
         scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
+      }
+    });
+  }
+}
+
+// ==================== GRÁFICOS DA ABA DRE ====================
+function renderDreCharts() {
+  const meses = calcularResumoMensal();
+  if (!meses.length) return;
+
+  // === 1. WATERFALL: como a receita bruta vira lucro líquido ===
+  const ctxW = document.getElementById('chartWaterfall');
+  if (ctxW) {
+    if (charts.waterfall) charts.waterfall.destroy();
+
+    const totalBruto = meses.reduce((s,m) => s + m.bruto, 0);
+    const totalTaxas = meses.reduce((s,m) => s + m.taxasAirbnb, 0);
+    const totalDesp = meses.reduce((s,m) => s + m.despesas, 0);
+    const totalImp = meses.reduce((s,m) => s + m.imposto, 0);
+    const totalParc = meses.reduce((s,m) => s + m.parcelas, 0);
+    const totalApto = meses.reduce((s,m) => s + m.parcelaApto, 0);
+    const lucroFinal = meses.reduce((s,m) => s + m.lucroComApto, 0);
+
+    // Construir cascata: cada barra é um intervalo [base, valor]
+    // No Chart.js fazemos com floating bars
+    const labels = ['Receita Bruta', '↓ Taxa Airbnb', '↓ Despesas Op.', '↓ Impostos', '↓ Parc. Invest.'];
+    const dados_floating = [];
+    const cores = [];
+
+    let acum = totalBruto;
+    dados_floating.push([0, totalBruto]); cores.push('#00A878');
+
+    acum -= totalTaxas;
+    dados_floating.push([acum, acum + totalTaxas]); cores.push('#FF8800');
+
+    acum -= totalDesp;
+    dados_floating.push([acum, acum + totalDesp]); cores.push('#E61E4D');
+
+    acum -= totalImp;
+    dados_floating.push([acum, acum + totalImp]); cores.push('#FFB800');
+
+    acum -= totalParc;
+    dados_floating.push([acum, acum + totalParc]); cores.push('#7B61FF');
+
+    if (totalApto > 0) {
+      labels.push('↓ Parc. Apto');
+      acum -= totalApto;
+      dados_floating.push([acum, acum + totalApto]);
+      cores.push('#9F4FFF');
+    }
+
+    labels.push('= Lucro Final');
+    if (lucroFinal >= 0) {
+      dados_floating.push([0, lucroFinal]);
+      cores.push('#0073E6');
+    } else {
+      dados_floating.push([lucroFinal, 0]);
+      cores.push('#991B1B');
+    }
+
+    charts.waterfall = new Chart(ctxW, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Cascata',
+          data: dados_floating,
+          backgroundColor: cores,
+          borderColor: cores,
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const v = c.raw;
+                const tam = Math.abs(v[1] - v[0]);
+                return c.label + ': R$ ' + tam.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+              }
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } }
+        }
+      }
+    });
+  }
+
+  // === 2. EVOLUÇÃO dos componentes mês a mês ===
+  const ctxEv = document.getElementById('chartEvolucao');
+  if (ctxEv) {
+    if (charts.evolucao) charts.evolucao.destroy();
+
+    const labels = meses.map(m => nomeMes(m.mes));
+    charts.evolucao = new Chart(ctxEv, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Receita Líquida', data: meses.map(m => m.liquido), borderColor: '#00A878', backgroundColor: 'rgba(0,168,120,0.1)', fill: false, tension: 0.3, pointRadius: 4 },
+          { label: 'Despesas Operac.', data: meses.map(m => m.despesas), borderColor: '#E61E4D', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4 },
+          { label: 'Impostos', data: meses.map(m => m.imposto), borderColor: '#FF8800', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4 },
+          { label: 'Financiamento', data: meses.map(m => m.parcelas + m.parcelaApto), borderColor: '#7B61FF', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (c) => c.dataset.label + ': R$ ' + c.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) } }
+        },
+        scales: { y: { ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
+      }
+    });
+  }
+
+  // === 3. MARGEM líquida por mês ===
+  const ctxM = document.getElementById('chartMargem');
+  if (ctxM) {
+    if (charts.margem) charts.margem.destroy();
+
+    const labels = meses.map(m => nomeMes(m.mes));
+    const margens = meses.map(m => m.bruto > 0 ? (m.lucroComApto / m.bruto * 100) : 0);
+    const cores = margens.map(v => v >= 0 ? '#00A878' : '#E61E4D');
+
+    charts.margem = new Chart(ctxM, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Margem (%)',
+          data: margens,
+          backgroundColor: cores,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => 'Margem: ' + c.parsed.y.toFixed(1) + '%' } }
+        },
+        scales: {
+          y: { ticks: { callback: v => v.toFixed(0) + '%' } }
+        }
+      }
+    });
+  }
+
+  // === 4. PROPORÇÃO: para cada R$ 100 de receita bruta ===
+  const ctxP = document.getElementById('chartProporcao');
+  if (ctxP) {
+    if (charts.proporcao) charts.proporcao.destroy();
+
+    const totalBruto = meses.reduce((s,m) => s + m.bruto, 0);
+    if (totalBruto === 0) return;
+
+    const pct = (v) => (v / totalBruto * 100);
+
+    const totalTaxas = meses.reduce((s,m) => s + m.taxasAirbnb, 0);
+    const totalDesp = meses.reduce((s,m) => s + m.despesas, 0);
+    const totalImp = meses.reduce((s,m) => s + m.imposto, 0);
+    const totalParc = meses.reduce((s,m) => s + m.parcelas, 0);
+    const totalApto = meses.reduce((s,m) => s + m.parcelaApto, 0);
+    const lucro = meses.reduce((s,m) => s + m.lucroComApto, 0);
+
+    const items = [
+      { label: 'Taxa Airbnb', valor: pct(totalTaxas), cor: '#FF8800' },
+      { label: 'Despesas Operacionais', valor: pct(totalDesp), cor: '#E61E4D' },
+      { label: 'Impostos', valor: pct(totalImp), cor: '#FFB800' },
+      { label: 'Parcelas Investimento', valor: pct(totalParc), cor: '#7B61FF' }
+    ];
+    if (totalApto > 0) items.push({ label: 'Parcela Apto', valor: pct(totalApto), cor: '#9F4FFF' });
+    items.push({ label: 'Lucro Líquido', valor: pct(lucro), cor: lucro >= 0 ? '#00A878' : '#991B1B' });
+
+    charts.proporcao = new Chart(ctxP, {
+      type: 'bar',
+      data: {
+        labels: items.map(i => i.label),
+        datasets: [{
+          label: '% sobre receita bruta',
+          data: items.map(i => i.valor),
+          backgroundColor: items.map(i => i.cor),
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const valorReais = c.parsed.x / 100 * totalBruto;
+                return `R$ ${valorReais.toLocaleString('pt-BR', {minimumFractionDigits:2})} (${c.parsed.x.toFixed(1)}% do bruto = R$ ${c.parsed.x.toFixed(2)} de cada R$ 100)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { callback: v => v.toFixed(0) + '%' }, title: { display: true, text: '% da Receita Bruta' } }
+        }
       }
     });
   }
@@ -1770,10 +2368,12 @@ function renderTudo() {
   renderInvestimento();
   renderDespesas();
   renderResumoMensal();
+  renderDre();
   renderKPIs();
   renderBreakeven();
   renderImpostos();
   renderCharts();
+  renderDreCharts();
 }
 
 // drag & drop
