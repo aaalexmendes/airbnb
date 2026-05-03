@@ -240,7 +240,10 @@
       <h1>🏠 Dashboard Airbnb</h1>
       <p>Brasília Premium: Conforto próximo à Esplanada — Anfitrião: Alex Mendes</p>
     </div>
-    <button class="reset-btn" onclick="resetAllData()">↻ Resetar dados</button>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+      <div id="sync-status" style="font-size:13px; padding:6px 12px; background:rgba(255,255,255,0.15); border-radius:6px; min-width:140px; text-align:center">📴 Carregando...</div>
+      <button class="reset-btn" onclick="resetAllData()">↻ Resetar</button>
+    </div>
   </div>
 </div>
 
@@ -691,8 +694,50 @@
       </div>
     </div>
 
+    <div class="card" style="margin-top:16px; border:2px solid #00C896">
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:6px">☁️ Sincronização entre dispositivos</h2>
+      <p style="font-size:13px; color:#666; margin-bottom:14px">Configure 1 vez e seus dados ficam sincronizados automaticamente entre PC, celular e tablet.</p>
+
+      <div id="cloud-setup-area">
+        <div class="alert alert-info" style="margin-bottom:14px">
+          <strong>📋 Passo a passo (3 minutos):</strong><br>
+          <strong>1.</strong> Acesse <a href="https://jsonbin.io/login" target="_blank" style="color:#0073E6; font-weight:600">jsonbin.io/login</a> e crie conta grátis (login com Google funciona)<br>
+          <strong>2.</strong> No painel, clique em <strong>"API Keys"</strong> (canto superior direito) → copie a <strong>"X-MASTER-KEY"</strong><br>
+          <strong>3.</strong> Cole a chave abaixo e clique em <strong>"Conectar"</strong>. Pronto!<br>
+          <br>
+          <strong>💡 Em outros dispositivos:</strong> use a mesma API Key + o Bin ID que vai aparecer aqui após conectar.
+        </div>
+
+        <div class="form-row">
+          <div style="grid-column: span 2">
+            <label class="label">API Key (X-MASTER-KEY do JSONBin)</label>
+            <input type="text" id="cloud-api-key" placeholder="$2a$10$..." style="font-family: monospace; font-size:12px">
+          </div>
+          <div>
+            <label class="label">Bin ID (deixe vazio na 1ª vez)</label>
+            <input type="text" id="cloud-bin-id" placeholder="opcional" style="font-family: monospace; font-size:12px">
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="conectarNuvem(document.getElementById('cloud-api-key').value.trim(), document.getElementById('cloud-bin-id').value.trim())">☁️ Conectar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cloud-status-area" style="display:none; margin-top:14px; padding:14px; background:#DCFCE7; border-radius:8px">
+        <div style="font-weight:600; color:#166534; margin-bottom:6px">✅ Sincronização ativa</div>
+        <div style="font-size:13px; color:#166534">
+          <strong>Bin ID:</strong> <code id="cloud-bin-id-display" style="background:white; padding:2px 6px; border-radius:4px; font-size:12px"></code>
+          <button class="btn btn-sm" onclick="copiarBinId()" style="background:white; color:#166534; margin-left:8px">📋 Copiar</button>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px">
+          <button class="btn btn-sm btn-secondary" onclick="carregarNuvem().then(()=>renderTudo())">🔄 Forçar sync agora</button>
+          <button class="btn btn-sm btn-danger" onclick="desconectarNuvem()">Desconectar</button>
+        </div>
+      </div>
+    </div>
+
     <div class="card" style="margin-top:16px">
-      <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">💾 Backup e dados</h2>
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">💾 Backup local</h2>
       <div style="display:flex; gap:10px; flex-wrap:wrap">
         <button class="btn btn-secondary" onclick="exportarBackup()">📤 Exportar backup (JSON)</button>
         <button class="btn btn-secondary" onclick="document.getElementById('backupInput').click()">📥 Importar backup</button>
@@ -700,7 +745,7 @@
       </div>
       <input type="file" id="backupInput" accept=".json" style="display:none" onchange="importarBackup(event)">
       <div style="margin-top:12px; font-size:12px; color:#888">
-        Os dados ficam salvos no seu navegador. Faça backup periodicamente exportando o JSON.
+        Use mesmo com sincronização ativa, como segurança extra.
       </div>
     </div>
 
@@ -729,33 +774,203 @@ let dados = {
 };
 
 let charts = {};
+let saveTimeout = null;
+let cloudConfig = { binId: '', apiKey: '', enabled: false };
 
 // ==================== PERSISTÊNCIA ====================
-async function salvarDados() {
+// Estratégia híbrida:
+// 1. localStorage = cache local rápido (sempre)
+// 2. JSONBin.io = backup na nuvem (se configurado) — sincroniza entre dispositivos
+// Indicador de status visível no header
+
+function setStatus(state, msg) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const icons = { synced: '☁️', saving: '⏳', error: '⚠️', local: '💾', off: '📴' };
+  const colors = { synced: '#00C896', saving: '#FFB800', error: '#FF6B6B', local: '#999', off: '#999' };
+  el.innerHTML = `<span style="opacity:0.9">${icons[state]||''} ${msg||''}</span>`;
+  el.style.color = colors[state] || '#fff';
+}
+
+function carregarConfigNuvem() {
   try {
-    if (window.storage) {
-      await window.storage.set('airbnb_dashboard', JSON.stringify(dados));
-    } else {
-      // fallback in-memory only
+    const c = localStorage.getItem('airbnb_cloud_config');
+    if (c) cloudConfig = JSON.parse(c);
+  } catch(e) {}
+}
+
+function salvarConfigNuvem() {
+  try {
+    localStorage.setItem('airbnb_cloud_config', JSON.stringify(cloudConfig));
+  } catch(e) {}
+}
+
+async function salvarLocalStorage() {
+  try {
+    localStorage.setItem('airbnb_dashboard', JSON.stringify(dados));
+  } catch(e) { console.error('Erro localStorage:', e); }
+}
+
+async function carregarLocalStorage() {
+  try {
+    const v = localStorage.getItem('airbnb_dashboard');
+    if (v) {
+      dados = JSON.parse(v);
+      garantirEstruturaDados();
+      return true;
     }
-  } catch(e) { console.error('Erro ao salvar:', e); }
+  } catch(e) { console.error('Erro carregando local:', e); }
+  return false;
+}
+
+function garantirEstruturaDados() {
+  if (!dados.reservas) dados.reservas = [];
+  if (!dados.investimento) dados.investimento = [];
+  if (!dados.despesas) dados.despesas = [];
+  if (!dados.config) dados.config = {};
+  if (typeof dados.config.parcelaApto !== 'number') dados.config.parcelaApto = 0;
+  if (!dados.config.mesInicioOperacao) dados.config.mesInicioOperacao = '2026-04';
+  if (!dados.config.regime) dados.config.regime = 'renda-alta';
+  if (typeof dados.config.aliquotaCustom !== 'number') dados.config.aliquotaCustom = 27.5;
+  if (typeof dados.config.deducoes !== 'number') dados.config.deducoes = 0;
+}
+
+async function salvarNuvem() {
+  if (!cloudConfig.enabled || !cloudConfig.binId || !cloudConfig.apiKey) return false;
+  try {
+    setStatus('saving', 'Salvando...');
+    const resp = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': cloudConfig.apiKey,
+        'X-Bin-Versioning': 'false'
+      },
+      body: JSON.stringify(dados)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    setStatus('synced', 'Sincronizado');
+    return true;
+  } catch(e) {
+    console.error('Erro nuvem:', e);
+    setStatus('error', 'Erro ao salvar na nuvem');
+    return false;
+  }
+}
+
+async function carregarNuvem() {
+  if (!cloudConfig.enabled || !cloudConfig.binId || !cloudConfig.apiKey) return false;
+  try {
+    setStatus('saving', 'Carregando da nuvem...');
+    const resp = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
+      headers: {
+        'X-Master-Key': cloudConfig.apiKey,
+        'X-Bin-Meta': 'false'
+      }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    // JSONBin retorna { record: {...} } ou só o JSON dependendo do header
+    const novo = json.record || json;
+    if (novo && (novo.reservas !== undefined || novo.investimento !== undefined)) {
+      dados = novo;
+      garantirEstruturaDados();
+      setStatus('synced', 'Sincronizado');
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.error('Erro carregar nuvem:', e);
+    setStatus('error', 'Erro ao carregar da nuvem');
+    return false;
+  }
+}
+
+// Salva local imediatamente; agenda nuvem com debounce de 1.5s
+async function salvarDados() {
+  await salvarLocalStorage();
+  if (cloudConfig.enabled) {
+    setStatus('saving', 'Salvando...');
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => salvarNuvem(), 1500);
+  } else {
+    setStatus('local', 'Salvo só neste navegador');
+  }
 }
 
 async function carregarDados() {
-  try {
-    if (window.storage) {
-      const r = await window.storage.get('airbnb_dashboard');
-      if (r && r.value) {
-        dados = JSON.parse(r.value);
-        if (!dados.config) dados.config = {};
-        if (typeof dados.config.parcelaApto !== 'number') dados.config.parcelaApto = 0;
-        if (!dados.config.mesInicioOperacao) dados.config.mesInicioOperacao = '2026-04';
-        if (!dados.config.regime) dados.config.regime = 'renda-alta';
-        if (typeof dados.config.aliquotaCustom !== 'number') dados.config.aliquotaCustom = 15;
-        if (typeof dados.config.deducoes !== 'number') dados.config.deducoes = 0;
-      }
+  carregarConfigNuvem();
+  // tenta nuvem primeiro
+  if (cloudConfig.enabled) {
+    const ok = await carregarNuvem();
+    if (ok) {
+      // sincroniza local também
+      await salvarLocalStorage();
+      return;
     }
-  } catch(e) { console.error('Erro ao carregar:', e); }
+    // se falhou, fallback local
+    setStatus('error', 'Offline, usando dados locais');
+  }
+  // tenta local
+  const local = await carregarLocalStorage();
+  if (!local && !cloudConfig.enabled) {
+    setStatus('off', 'Sem sincronização configurada');
+  }
+}
+
+// Conecta uma conta JSONBin nova (cria bin se necessário)
+async function conectarNuvem(apiKey, binId) {
+  if (!apiKey) { alert('Cole sua API Key'); return; }
+
+  if (!binId) {
+    // criar novo bin com os dados atuais
+    try {
+      setStatus('saving', 'Criando bin...');
+      const resp = await fetch('https://api.jsonbin.io/v3/b', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': apiKey,
+          'X-Bin-Name': 'Dashboard Airbnb',
+          'X-Bin-Private': 'true'
+        },
+        body: JSON.stringify(dados)
+      });
+      if (!resp.ok) throw new Error('Não conseguiu criar (verifique sua API Key)');
+      const json = await resp.json();
+      binId = json.metadata.id;
+    } catch(e) {
+      alert('❌ Erro: ' + e.message);
+      setStatus('error', 'Erro de conexão');
+      return;
+    }
+  }
+
+  cloudConfig = { apiKey, binId, enabled: true };
+  salvarConfigNuvem();
+
+  // tenta carregar do bin pra ver se funcionou
+  const ok = await carregarNuvem();
+  if (ok) {
+    alert(`✅ Sincronização ativada!\n\nID do seu Bin: ${binId}\n\nGuarde este ID! Em outros dispositivos, use a mesma API Key + este ID.`);
+    document.getElementById('cloud-bin-id-display').textContent = binId;
+    document.getElementById('cloud-status-area').style.display = 'block';
+    renderTudo();
+  } else {
+    alert('❌ Não foi possível ler do bin. Verifique a API Key e o Bin ID.');
+    cloudConfig.enabled = false;
+    salvarConfigNuvem();
+  }
+}
+
+function desconectarNuvem() {
+  if (!confirm('Desconectar da nuvem? Os dados continuarão neste navegador, mas não vão mais sincronizar com outros dispositivos.')) return;
+  cloudConfig = { binId: '', apiKey: '', enabled: false };
+  salvarConfigNuvem();
+  document.getElementById('cloud-status-area').style.display = 'none';
+  setStatus('local', 'Salvo só neste navegador');
+  document.getElementById('cloud-api-key').value = '';
+  document.getElementById('cloud-bin-id').value = '';
 }
 
 function salvarConfig() {
@@ -1570,9 +1785,31 @@ upArea.addEventListener('drop', ev => {
   if (f) { document.getElementById('fileInput').files = ev.dataTransfer.files; importarCSV({ target: { files: [f], value: '' } }); }
 });
 
+function copiarBinId() {
+  const txt = document.getElementById('cloud-bin-id-display').textContent;
+  navigator.clipboard.writeText(txt).then(() => alert('✅ Bin ID copiado! Cole no outro dispositivo.')).catch(() => {
+    prompt('Copie manualmente:', txt);
+  });
+}
+
 (async function init() {
+  setStatus('saving', 'Carregando...');
+  carregarConfigNuvem();
+
+  // Popular UI da nuvem se já estiver configurada
+  if (cloudConfig.enabled && cloudConfig.binId) {
+    document.getElementById('cloud-api-key').value = cloudConfig.apiKey || '';
+    document.getElementById('cloud-bin-id').value = cloudConfig.binId || '';
+    document.getElementById('cloud-bin-id-display').textContent = cloudConfig.binId;
+    document.getElementById('cloud-status-area').style.display = 'block';
+  }
+
   await carregarDados();
   renderTudo();
+
+  if (!cloudConfig.enabled) {
+    setStatus('local', 'Salvo só neste navegador');
+  }
 })();
 </script>
 
