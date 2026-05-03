@@ -452,6 +452,7 @@
         <div>
           <label class="label">Categoria</label>
           <select id="desp-categoria">
+            <option value="Parcela Apto">🏢 Parcela Apto (financiamento)</option>
             <option value="Condomínio">Condomínio</option>
             <option value="Energia">Energia</option>
             <option value="Internet">Internet</option>
@@ -468,9 +469,9 @@
         <div><button class="btn btn-primary" onclick="adicionarDespesa()">Adicionar</button></div>
       </div>
       <div style="margin-top:8px; font-size:12px; color:#888">
-        💡 Dica: para uma despesa que se repete todo mês com o mesmo valor, marque a opção abaixo:
+        💡 Marque abaixo apenas se a despesa <strong>se repete todo mês com o mesmo valor</strong> (ex: condomínio, internet). Para parcela do apto SAC ou contas variáveis, cadastre cada mês separadamente.
       </div>
-      <div style="margin-top:8px"><label style="font-size:13px"><input type="checkbox" id="desp-recorrente"> Repetir mensalmente até dezembro/2026</label></div>
+      <div style="margin-top:8px"><label style="font-size:13px"><input type="checkbox" id="desp-recorrente"> Repetir mensalmente por 12 meses (mesmo valor)</label></div>
     </div>
 
     <div class="card" style="margin-top:16px">
@@ -534,9 +535,9 @@
         <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🏢 Cenário 2: COM parcela do apartamento</h2>
         <p style="font-size:13px; color:#666; margin-bottom:14px">Considera custo total real, incluindo o financiamento</p>
 
-        <div style="margin-bottom:14px; padding:10px; background:#fff5f7; border-radius:8px; display:flex; align-items:center; gap:10px">
-          <label style="font-size:13px; font-weight:500; color:#666; white-space:nowrap">Parcela do apto (R$/mês):</label>
-          <input type="number" id="parcela-apto" step="0.01" placeholder="0,00" onchange="salvarConfig(); renderTudo()" style="max-width:160px">
+        <div style="margin-bottom:14px; padding:10px; background:#fff5f7; border-radius:8px; font-size:13px; color:#666">
+          💡 As parcelas do apto agora são cadastradas <strong>mês a mês</strong> na aba <strong>📉 Despesas</strong>, na categoria <strong>"Parcela Apto"</strong>. Isso permite valores diferentes em cada mês (sistema SAC).
+          <input type="hidden" id="parcela-apto" value="0">
         </div>
 
         <div style="display:grid; gap:8px; margin-bottom:14px">
@@ -598,26 +599,38 @@
 
     <div class="card" style="margin-top:16px">
       <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">⚙️ Configuração tributária</h2>
+
+      <div class="alert alert-info" style="margin-bottom:14px">
+        <strong>📚 O que diz a legislação (2026):</strong><br>
+        • Aluguel por temporada via Airbnb (pago por pessoa física) é tributado pelo <strong>Carnê-Leão</strong>, código DARF <strong>0190</strong>.<br>
+        • <strong>Não existe alíquota especial</strong> nem desconto específico para Airbnb — usa-se a tabela progressiva normal (até 27,5%).<br>
+        • <strong>Desde 2021</strong>, o Airbnb compartilha dados com a Receita Federal (CPF, valores, número de transações).<br>
+        • <strong>Deduções permitidas:</strong> condomínio, IPTU, taxa de serviço do Airbnb (já desconta), comissões, manutenção do imóvel — todas <strong>proporcionalmente ao período alugado</strong>.<br>
+        • <strong>Atenção ao redutor 2026:</strong> só zera o IR para quem <strong>somando todas as fontes</strong> recebe até R$ 5.000/mês. Se a soma do salário + Airbnb passar de R$ 7.350, o redutor não se aplica e o adicional do Airbnb é tributado pela alíquota marginal (no seu caso, 27,5%).
+      </div>
+
       <div class="form-row">
         <div>
-          <label class="label">Regime tributário</label>
+          <label class="label">Sua situação tributária</label>
           <select id="regime-tributario" onchange="atualizarImpostos()">
-            <option value="carne-leao">Carnê-Leão (PF) — tabela progressiva</option>
-            <option value="custom">Alíquota personalizada</option>
-            <option value="isento">Isento / não declarar</option>
+            <option value="renda-alta">🔴 Renda alta — já paga 27,5% (Airbnb tributado a 27,5% direto)</option>
+            <option value="carne-leao">🟢 Apenas Airbnb / renda baixa — Carnê-Leão progressivo c/ redutor 2026</option>
+            <option value="custom">⚙️ Alíquota personalizada</option>
+            <option value="isento">⚪ Isento / não declarar</option>
           </select>
         </div>
         <div id="campo-aliquota-custom" style="display:none">
           <label class="label">Alíquota personalizada (%)</label>
-          <input type="number" id="aliquota-custom" step="0.01" value="15" onchange="atualizarImpostos()">
-        </div>
-        <div>
-          <label class="label">Deduções permitidas/mês (R$)</label>
-          <input type="number" id="deducoes" step="0.01" value="0" onchange="atualizarImpostos()" placeholder="Ex: condomínio, IPTU">
+          <input type="number" id="aliquota-custom" step="0.01" value="27.5" onchange="atualizarImpostos()">
         </div>
       </div>
-      <div style="margin-top:8px; font-size:12px; color:#888">
-        💡 Para aluguel por temporada (Airbnb), pessoa física declara via Carnê-Leão. Despesas como condomínio, IPTU e taxas podem ser deduzidas da receita bruta.
+
+      <div style="margin-top:14px">
+        <label class="label">Deduções permitidas por mês (R$)</label>
+        <input type="number" id="deducoes" step="0.01" value="0" onchange="atualizarImpostos()" placeholder="0,00 — soma de condomínio + IPTU + outras dedutíveis" style="max-width:300px">
+        <div style="font-size:12px; color:#888; margin-top:4px">
+          💡 Some condomínio + IPTU + manutenção. Considere a <strong>proporção do período alugado</strong>. Ex: se o apto ficou alugado 20 dias num mês de 30 (66%), deduza 66% das despesas. Guarde notas fiscais por 5 anos.
+        </div>
       </div>
     </div>
 
@@ -656,7 +669,7 @@
         </tbody>
       </table>
       <div style="margin-top:10px; font-size:12px; color:#888">
-        Valores de referência. Confira sempre na Receita Federal a tabela vigente no momento da apuração.
+        + Redutor 2026: zera o IR para renda total mensal até R$ 5.000. Entre R$ 5.000,01 e R$ 7.350: redutor = R$ 978,62 − (0,133145 × renda total). Acima de R$ 7.350: sem redutor.
       </div>
     </div>
   </div>
@@ -672,10 +685,9 @@
         <div style="font-size:12px; color:#888; margin-top:4px">Despesas anteriores a este mês não serão computadas no breakeven operacional.</div>
       </div>
 
-      <div style="margin-bottom:16px">
-        <label class="label">Parcela mensal do apartamento (R$)</label>
-        <input type="number" id="parcela-apto-config" step="0.01" placeholder="0,00" onchange="document.getElementById('parcela-apto').value=this.value; salvarConfig(); renderTudo()" style="max-width:200px">
-        <div style="font-size:12px; color:#888; margin-top:4px">Usado no Cenário 2 do breakeven.</div>
+      <div style="margin-bottom:16px; padding:12px; background:#fff5f7; border-radius:8px; font-size:13px; color:#666">
+        🏢 <strong>Parcela do apto (sistema SAC):</strong> agora é cadastrada mês a mês na aba 📉 <strong>Despesas</strong>, na categoria "Parcela Apto". Isso permite valores diferentes em cada mês (juros decrescentes do SAC).
+        <input type="hidden" id="parcela-apto-config" value="0">
       </div>
     </div>
 
@@ -710,8 +722,8 @@ let dados = {
   config: {
     parcelaApto: 0,
     mesInicioOperacao: '2026-04',
-    regime: 'carne-leao',
-    aliquotaCustom: 15,
+    regime: 'renda-alta',
+    aliquotaCustom: 27.5,
     deducoes: 0
   }
 };
@@ -738,7 +750,7 @@ async function carregarDados() {
         if (!dados.config) dados.config = {};
         if (typeof dados.config.parcelaApto !== 'number') dados.config.parcelaApto = 0;
         if (!dados.config.mesInicioOperacao) dados.config.mesInicioOperacao = '2026-04';
-        if (!dados.config.regime) dados.config.regime = 'carne-leao';
+        if (!dados.config.regime) dados.config.regime = 'renda-alta';
         if (typeof dados.config.aliquotaCustom !== 'number') dados.config.aliquotaCustom = 15;
         if (typeof dados.config.deducoes !== 'number') dados.config.deducoes = 0;
       }
@@ -774,9 +786,36 @@ function mesDeData(d) {
 }
 function nomeMes(ym) {
   if (!ym) return '';
-  const [a, m] = ym.split('-');
+  ym = String(ym).trim();
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  return meses[parseInt(m)-1] + '/' + a;
+  // formato esperado: YYYY-MM
+  if (/^\d{4}-\d{2}$/.test(ym)) {
+    const [a, m] = ym.split('-');
+    const idx = parseInt(m) - 1;
+    if (idx < 0 || idx > 11) return ym;
+    return meses[idx] + '/' + a;
+  }
+  // formato MM/YY ou MM/YYYY
+  if (/^\d{1,2}\/\d{2,4}$/.test(ym)) {
+    const [m, a] = ym.split('/');
+    const idx = parseInt(m) - 1;
+    const ano = a.length === 2 ? '20' + a : a;
+    if (idx < 0 || idx > 11) return ym;
+    return meses[idx] + '/' + ano;
+  }
+  return ym;
+}
+function normalizarMes(s) {
+  // converte qualquer formato para YYYY-MM
+  if (!s) return '';
+  s = String(s).trim();
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  if (/^\d{1,2}\/\d{2,4}$/.test(s)) {
+    const [m, a] = s.split('/');
+    const ano = a.length === 2 ? '20' + a : a;
+    return ano + '-' + m.padStart(2, '0');
+  }
+  return s;
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
 
@@ -982,21 +1021,27 @@ function exportarInvestimento() {
 // ==================== DESPESAS ====================
 function adicionarDespesa() {
   const recorrente = document.getElementById('desp-recorrente').checked;
-  const baseMes = document.getElementById('desp-mes').value;
+  const baseMes = normalizarMes(document.getElementById('desp-mes').value);
   const valor = parseFloat(document.getElementById('desp-valor').value) || 0;
   const cat = document.getElementById('desp-categoria').value;
   const desc = document.getElementById('desp-descricao').value;
 
   if (!baseMes || !valor) { alert('Preencha mês e valor'); return; }
+  if (!/^\d{4}-\d{2}$/.test(baseMes)) {
+    alert('Formato de mês inválido. Use YYYY-MM (ex: 2026-06) ou MM/AAAA (ex: 06/2026).');
+    return;
+  }
 
   if (recorrente) {
     let [a, m] = baseMes.split('-').map(Number);
-    while (a < 2026 || (a === 2026 && m <= 12)) {
-      if (a > 2026) break;
+    while (a < 2030 || (a === 2030 && m <= 12)) {
+      if (a > 2030) break;
       const ym = a + '-' + String(m).padStart(2,'0');
       dados.despesas.push({ id: uid(), mes: ym, categoria: cat, descricao: desc, valor: valor });
       m++;
       if (m > 12) { m = 1; a++; }
+      // limita a 12 meses para frente
+      if (dados.despesas.filter(d=>d.descricao===desc && d.categoria===cat).length >= 12) break;
     }
   } else {
     dados.despesas.push({ id: uid(), mes: baseMes, categoria: cat, descricao: desc, valor: valor });
@@ -1051,11 +1096,13 @@ function calcularResumoMensal() {
   dados.despesas.forEach(d => { if (d.mes >= mesIni) mesesSet.add(d.mes); });
 
   const meses = [...mesesSet].sort();
-  const parcelaApto = dados.config.parcelaApto || 0;
 
   return meses.map(m => {
     const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
-    const despesasMes = dados.despesas.filter(d => d.mes === m);
+    // separa "Parcela Apto" das outras despesas
+    const despesasMes = dados.despesas.filter(d => d.mes === m && d.categoria !== 'Parcela Apto');
+    const parcelaAptoMes = dados.despesas.filter(d => d.mes === m && d.categoria === 'Parcela Apto')
+                                          .reduce((s,d) => s + d.valor, 0);
     const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
     const liquido = reservasMes.reduce((s,r) => s + r.liquido, 0);
     const totalDesp = despesasMes.reduce((s,d) => s + d.valor, 0);
@@ -1065,8 +1112,9 @@ function calcularResumoMensal() {
       bruto, liquido,
       despesas: totalDesp,
       parcelas: totalParc,
+      parcelaApto: parcelaAptoMes,
       resultadoSemApto: liquido - totalDesp - totalParc,
-      resultadoComApto: liquido - totalDesp - totalParc - parcelaApto
+      resultadoComApto: liquido - totalDesp - totalParc - parcelaAptoMes
     };
   });
 }
@@ -1136,8 +1184,8 @@ function renderBreakeven() {
   const numMeses = meses.length;
   const receitaAcum = meses.reduce((s,m) => s + m.liquido, 0);
   const despesasAcum = meses.reduce((s,m) => s + m.despesas + m.parcelas, 0);
-  const parcelaApto = dados.config.parcelaApto || 0;
-  const aptoAcum = parcelaApto * numMeses;
+  const aptoAcum = meses.reduce((s,m) => s + (m.parcelaApto || 0), 0);
+  const ultimaParcelaApto = numMeses ? meses[numMeses-1].parcelaApto || 0 : 0;
 
   // Cenário 1: SEM apto
   const custo1 = investTotal + despesasAcum;
@@ -1172,7 +1220,7 @@ function renderBreakeven() {
   // projeções
   const receitaMediaMes = numMeses ? receitaAcum / numMeses : 0;
   const proj1 = projecaoBreakeven(custo1, receitaAcum, receitaMediaMes, meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0);
-  const proj2 = projecaoBreakeven(custo2, receitaAcum, receitaMediaMes, (meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0) + parcelaApto);
+  const proj2 = projecaoBreakeven(custo2, receitaAcum, receitaMediaMes, (meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0) + ultimaParcelaApto);
 
   document.getElementById('be1-projecao').innerHTML = pct1 >= 100
     ? '✅ <strong>Breakeven atingido!</strong> Você já cobriu o investimento e despesas.'
@@ -1198,11 +1246,28 @@ function projecaoBreakeven(custoTotal, receitaAtual, receitaMediaMes, despesaMen
 
 // ==================== IMPOSTOS ====================
 function calcularImpostoCarneLeao(base) {
+  // Tabela progressiva mensal 2026
   if (base <= 2428.80) return 0;
   if (base <= 2826.65) return base * 0.075 - 182.16;
   if (base <= 3751.05) return base * 0.15 - 394.16;
   if (base <= 4664.68) return base * 0.225 - 675.49;
   return base * 0.275 - 908.73;
+}
+
+function aplicarRedutor2026(impostoBruto, base) {
+  // Redutor 2026 (Lei 15.270/2025): zera o IR para renda mensal até R$ 5.000
+  // e reduz parcialmente entre R$ 5.000,01 e R$ 7.350,00.
+  // ATENÇÃO: o redutor considera a RENDA TOTAL do contribuinte no mês,
+  // não apenas o Airbnb. Esta função assume que a base passada já é a renda total.
+  if (base <= 5000) {
+    // limitado ao próprio imposto (não cria crédito)
+    return Math.max(0, impostoBruto - 312.89);
+  }
+  if (base <= 7350) {
+    const redutor = Math.max(0, 978.62 - 0.133145 * base);
+    return Math.max(0, impostoBruto - redutor);
+  }
+  return impostoBruto; // sem redutor
 }
 
 function atualizarImpostos() {
@@ -1217,7 +1282,7 @@ function atualizarImpostos() {
 
 function renderImpostos() {
   const mesIni = dados.config.mesInicioOperacao || '2026-04';
-  const regime = dados.config.regime || 'carne-leao';
+  const regime = dados.config.regime || 'renda-alta';
   const aliquotaCustom = dados.config.aliquotaCustom || 0;
   const deducoes = dados.config.deducoes || 0;
 
@@ -1242,10 +1307,20 @@ function renderImpostos() {
     const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
     const base = Math.max(0, bruto - deducoes);
     let imposto = 0, aliqStr = '';
-    if (regime === 'carne-leao') {
-      imposto = calcularImpostoCarneLeao(base);
-      const aliq = base > 4664.68 ? '27,5%' : base > 3751.05 ? '22,5%' : base > 2826.65 ? '15,0%' : base > 2428.80 ? '7,5%' : '0% (isento)';
-      aliqStr = aliq;
+
+    if (regime === 'renda-alta') {
+      // Você já está na faixa de 27,5% pela soma de todas suas fontes.
+      // Cada R$ adicional do Airbnb é tributado integralmente pela alíquota marginal de 27,5%.
+      // Sem redutor (renda total > R$ 7.350).
+      imposto = base * 0.275;
+      aliqStr = '27,5% (marginal)';
+    } else if (regime === 'carne-leao') {
+      // Apenas Airbnb é a fonte → aplica tabela progressiva + redutor 2026
+      const impostoBruto = calcularImpostoCarneLeao(base);
+      imposto = aplicarRedutor2026(impostoBruto, base);
+      const aliq = base > 4664.68 ? '27,5%' : base > 3751.05 ? '22,5%' : base > 2826.65 ? '15,0%' : base > 2428.80 ? '7,5%' : '0%';
+      const obs = base <= 5000 ? ' c/ redutor' : (base <= 7350 ? ' c/ redutor parcial' : '');
+      aliqStr = aliq + obs;
     } else if (regime === 'custom') {
       imposto = base * aliquotaCustom / 100;
       aliqStr = aliquotaCustom + '%';
@@ -1271,7 +1346,11 @@ function renderImpostos() {
   document.getElementById('imp-bruta').textContent = fmt(totalBruto);
   document.getElementById('imp-estimado').textContent = fmt(totalImposto);
   document.getElementById('imp-liquida').textContent = fmt(totalBruto - totalImposto);
-  document.getElementById('imp-aliquota-info').textContent = 'Regime: ' + (regime === 'carne-leao' ? 'Carnê-Leão' : regime === 'custom' ? aliquotaCustom + '%' : 'isento');
+  const regimeLabel = regime === 'renda-alta' ? '27,5% marginal (renda alta)'
+                    : regime === 'carne-leao' ? 'Carnê-Leão progressivo + redutor 2026'
+                    : regime === 'custom' ? aliquotaCustom + '%'
+                    : 'isento';
+  document.getElementById('imp-aliquota-info').textContent = 'Regime: ' + regimeLabel;
 }
 
 // ==================== CHARTS ====================
@@ -1311,7 +1390,6 @@ function renderCharts() {
     const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
     const numMeses = meses.length || 1;
     grupos['Parcelas (invest.)'] = parcMensal * numMeses;
-    if (dados.config.parcelaApto > 0) grupos['Parcela apto'] = dados.config.parcelaApto * numMeses;
 
     const labels = Object.keys(grupos);
     const valores = Object.values(grupos);
@@ -1341,7 +1419,6 @@ function renderCharts() {
   if (ctx3) {
     if (charts.be) charts.be.destroy();
     const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
-    const parcelaApto = dados.config.parcelaApto || 0;
 
     const labels = meses.map(m => nomeMes(m.mes));
     let acumReceita = 0;
@@ -1351,7 +1428,7 @@ function renderCharts() {
     meses.forEach(m => {
       acumReceita += m.liquido;
       acumCustoSemApto += m.despesas + m.parcelas;
-      acumCustoComApto += m.despesas + m.parcelas + parcelaApto;
+      acumCustoComApto += m.despesas + m.parcelas + (m.parcelaApto || 0);
       dataReceita.push(acumReceita);
       dataCusto1.push(acumCustoSemApto);
       dataCusto2.push(acumCustoComApto);
@@ -1410,7 +1487,7 @@ function baixarArquivo(conteudo, nome, tipo) {
 
 async function resetAllData() {
   if (!confirm('⚠️ Apagar TODOS os dados? Esta ação não pode ser desfeita.')) return;
-  dados = { reservas: [], investimento: [], despesas: [], config: { parcelaApto: 0, mesInicioOperacao: '2026-04', regime: 'carne-leao', aliquotaCustom: 15, deducoes: 0 } };
+  dados = { reservas: [], investimento: [], despesas: [], config: { parcelaApto: 0, mesInicioOperacao: '2026-04', regime: 'renda-alta', aliquotaCustom: 27.5, deducoes: 0 } };
   await salvarDados();
   renderTudo();
 }
@@ -1469,7 +1546,7 @@ function renderTudo() {
   document.getElementById('parcela-apto').value = dados.config.parcelaApto || '';
   document.getElementById('parcela-apto-config').value = dados.config.parcelaApto || '';
   document.getElementById('mes-inicio-operacao').value = dados.config.mesInicioOperacao || '2026-04';
-  document.getElementById('regime-tributario').value = dados.config.regime || 'carne-leao';
+  document.getElementById('regime-tributario').value = dados.config.regime || 'renda-alta';
   document.getElementById('aliquota-custom').value = dados.config.aliquotaCustom || 15;
   document.getElementById('deducoes').value = dados.config.deducoes || 0;
   document.getElementById('campo-aliquota-custom').style.display = dados.config.regime === 'custom' ? 'block' : 'none';
