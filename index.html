@@ -282,6 +282,42 @@
 
   <!-- =================== VISÃO GERAL =================== -->
   <div id="visao-geral" class="content active">
+    <!-- Decomposição de receitas: Paga vs Programada -->
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card" style="border-left:4px solid #00A878">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <h3 style="display:flex; align-items:center; gap:6px">
+              ✅ Receita Paga
+              <span class="pill pill-green" style="font-size:9px">Já caiu na conta</span>
+            </h3>
+            <div class="value" id="kpi-receita-paga" style="color:#00A878">R$ 0,00</div>
+            <div class="sub" id="kpi-receita-paga-sub">0 reservas confirmadas</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px; color:#666; text-transform:uppercase; letter-spacing:0.5px">Bruta</div>
+            <div style="font-size:14px; font-weight:600; color:#222" id="kpi-receita-paga-bruta">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="border-left:4px solid #0073E6">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <h3 style="display:flex; align-items:center; gap:6px">
+              ⏳ Receita Programada
+              <span class="pill pill-blue" style="font-size:9px">A receber</span>
+            </h3>
+            <div class="value" id="kpi-receita-programada" style="color:#0073E6">R$ 0,00</div>
+            <div class="sub" id="kpi-receita-programada-sub">0 reservas pendentes</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px; color:#666; text-transform:uppercase; letter-spacing:0.5px">Bruta</div>
+            <div style="font-size:14px; font-weight:600; color:#222" id="kpi-receita-programada-bruta">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPIs principais -->
     <div class="grid grid-4">
       <div class="card green">
@@ -2373,6 +2409,24 @@ function renderKPIs() {
   const reservasCount = reservasOp.length;
   const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
   const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
+
+  // === Decomposição: Pago vs Programado ===
+  const reservasPagas = reservasOp.filter(r => r.status === 'pago');
+  const reservasPendentes = reservasOp.filter(r => r.status !== 'pago');
+  const receitaPagaLiquida = reservasPagas.reduce((s,r) => s + (r.liquido||0), 0);
+  const receitaPagaBruta = reservasPagas.reduce((s,r) => s + (r.bruto||0), 0);
+  const receitaProgLiquida = reservasPendentes.reduce((s,r) => s + (r.liquido||0), 0);
+  const receitaProgBruta = reservasPendentes.reduce((s,r) => s + (r.bruto||0), 0);
+
+  document.getElementById('kpi-receita-paga').textContent = fmt(receitaPagaLiquida);
+  document.getElementById('kpi-receita-paga-sub').textContent =
+    `${reservasPagas.length} ${reservasPagas.length===1?'reserva confirmada':'reservas confirmadas'}`;
+  document.getElementById('kpi-receita-paga-bruta').textContent = fmt(receitaPagaBruta);
+
+  document.getElementById('kpi-receita-programada').textContent = fmt(receitaProgLiquida);
+  document.getElementById('kpi-receita-programada-sub').textContent =
+    `${reservasPendentes.length} ${reservasPendentes.length===1?'reserva pendente':'reservas pendentes'}`;
+  document.getElementById('kpi-receita-programada-bruta').textContent = fmt(receitaProgBruta);
 
   // calcular tudo a partir do resumo mensal completo
   const meses = calcularResumoMensal();
