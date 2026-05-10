@@ -948,6 +948,19 @@
       </div>
     </div>
 
+    <div class="card" style="margin-top:16px; border:2px solid #FF8800; background:#FFF8F0">
+      <h2 style="font-size:17px; font-weight:600; margin-bottom:6px">🛠️ Reparo de dados</h2>
+      <p style="font-size:13px; color:#666; margin-bottom:12px">
+        Use estes botões se os valores estiverem <strong>100x maiores que o esperado</strong> (bug de importação corrigido em 10/05/2026).
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="analisarDadosCorrompidos()">🔍 Analisar dados (preview)</button>
+        <button class="btn btn-primary" style="background:#FF8800" onclick="repararDadosMultiplicados()">🔧 Reparar reservas (÷ 100)</button>
+        <button class="btn btn-secondary" onclick="removerDuplicatas()">🧹 Remover duplicatas</button>
+      </div>
+      <div id="reparo-resultado" style="margin-top:12px; font-size:13px"></div>
+    </div>
+
     <div class="card" style="margin-top:16px">
       <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">🔄 Carregar dados de exemplo</h2>
       <p style="font-size:13px; color:#666; margin-bottom:12px">Carrega os dados que você enviou (reservas de abril/maio + investimento inicial).</p>
@@ -2980,6 +2993,137 @@ function renderDreCharts() {
       }
     });
   }
+}
+
+// ==================== REPARO DE DADOS ====================
+// Detecta reservas com valores 100x maiores (bug do parseBR antigo)
+// Heurística: limpeza > 1000 OU bruto > 10000 (valores típicos de reserva são <2000)
+
+function detectarReservasCorrompidas() {
+  return dados.reservas.filter(r => {
+    // Limpeza típica: 80-200. Se > 1000 quase certamente está multiplicada por 100
+    if (r.limpeza > 1000) return true;
+    // Bruto típico de uma reserva curta: <3000. Se > 30000, suspeito
+    if (r.bruto > 30000) return true;
+    return false;
+  });
+}
+
+function detectarItensInvestCorrompidos() {
+  return dados.investimento.filter(i => {
+    // Itens típicos: <5000. Se > 50000, multiplicado
+    if (i.valor > 50000) return true;
+    if (i.mensal > 10000) return true;
+    return false;
+  });
+}
+
+function analisarDadosCorrompidos() {
+  const resCorr = detectarReservasCorrompidas();
+  const invCorr = detectarItensInvestCorrompidos();
+  const div = document.getElementById('reparo-resultado');
+  let html = '';
+  if (!resCorr.length && !invCorr.length) {
+    html = '<div class="alert alert-success">✅ Nenhum dado suspeito de bug de multiplicação encontrado.</div>';
+  } else {
+    html = '<div class="alert alert-warning">';
+    html += `<strong>⚠️ Encontrei ${resCorr.length + invCorr.length} item(ns) com valores suspeitos de estar 100x maiores:</strong><br><br>`;
+    if (resCorr.length) {
+      html += `<strong>Reservas (${resCorr.length}):</strong><ul style="margin:6px 0 0 20px">`;
+      resCorr.slice(0, 10).forEach(r => {
+        html += `<li>${r.hospede || '?'} (${r.inicio || '?'}): bruto ${fmt(r.bruto)} → seria ${fmt(r.bruto/100)}</li>`;
+      });
+      if (resCorr.length > 10) html += `<li>... e mais ${resCorr.length - 10}</li>`;
+      html += '</ul>';
+    }
+    if (invCorr.length) {
+      html += `<br><strong>Itens de investimento (${invCorr.length}):</strong><ul style="margin:6px 0 0 20px">`;
+      invCorr.slice(0, 10).forEach(i => {
+        html += `<li>${i.oque || i.onde}: valor ${fmt(i.valor)} → seria ${fmt(i.valor/100)}</li>`;
+      });
+      html += '</ul>';
+    }
+    html += '<br><strong>Use o botão "🔧 Reparar reservas" para corrigir automaticamente.</strong></div>';
+  }
+  div.innerHTML = html;
+}
+
+function repararDadosMultiplicados() {
+  const resCorr = detectarReservasCorrompidas();
+  const invCorr = detectarItensInvestCorrompidos();
+  const total = resCorr.length + invCorr.length;
+  if (total === 0) {
+    document.getElementById('reparo-resultado').innerHTML =
+      '<div class="alert alert-success">✅ Nada para reparar. Todos os dados já estão com valores corretos.</div>';
+    return;
+  }
+  if (!confirm(
+    `Vou dividir por 100 os valores de:\n\n` +
+    `• ${resCorr.length} reserva(s) suspeita(s)\n` +
+    `• ${invCorr.length} item(ns) de investimento\n\n` +
+    `Faça backup ANTES (botão "📤 Exportar backup") por segurança.\n\n` +
+    `Confirma o reparo?`
+  )) return;
+
+  resCorr.forEach(r => {
+    r.bruto = +(r.bruto / 100).toFixed(2);
+    r.taxa = r.taxa > 1000 ? +(r.taxa / 100).toFixed(2) : r.taxa;
+    r.limpeza = +(r.limpeza / 100).toFixed(2);
+    r.liquido = +(r.liquido / 100).toFixed(2);
+  });
+  invCorr.forEach(i => {
+    i.valor = +(i.valor / 100).toFixed(2);
+    i.mensal = +(i.mensal / 100).toFixed(2);
+  });
+
+  salvarDados();
+  renderTudo();
+  document.getElementById('reparo-resultado').innerHTML =
+    `<div class="alert alert-success">✅ Reparado! ${resCorr.length} reserva(s) e ${invCorr.length} item(ns) tiveram valores divididos por 100.</div>`;
+}
+
+function removerDuplicatas() {
+  // Detecta duplicatas pelo trio (inicio, hospede, noites) — ignorando valores
+  const visto = new Map();
+  const duplicadas = [];
+  const manter = [];
+  // Ordena: prioriza as com bruto MENOR (provavelmente as corretas, não multiplicadas)
+  // E status='pago' antes de 'pendente'
+  const ordenada = [...dados.reservas].sort((a, b) => {
+    if (a.status === 'pago' && b.status !== 'pago') return -1;
+    if (b.status === 'pago' && a.status !== 'pago') return 1;
+    return (a.bruto || 0) - (b.bruto || 0);
+  });
+  ordenada.forEach(r => {
+    const key = `${r.inicio || ''}|${(r.hospede || '').toLowerCase().trim()}|${r.noites || 0}`;
+    if (visto.has(key)) {
+      duplicadas.push(r);
+    } else {
+      visto.set(key, r);
+      manter.push(r);
+    }
+  });
+
+  const div = document.getElementById('reparo-resultado');
+  if (!duplicadas.length) {
+    div.innerHTML = '<div class="alert alert-success">✅ Nenhuma duplicata encontrada.</div>';
+    return;
+  }
+
+  if (!confirm(
+    `Encontrei ${duplicadas.length} reserva(s) duplicada(s).\n\n` +
+    `Vou manter a versão de cada hóspede com:\n` +
+    `1. Status "Pago" (se houver)\n` +
+    `2. Menor valor bruto (provavelmente a correta)\n\n` +
+    `Removidas:\n` + duplicadas.slice(0, 5).map(r => `• ${r.hospede} (${fmt(r.bruto)})`).join('\n') +
+    (duplicadas.length > 5 ? `\n... e mais ${duplicadas.length - 5}` : '') +
+    `\n\nConfirma?`
+  )) return;
+
+  dados.reservas = manter;
+  salvarDados();
+  renderTudo();
+  div.innerHTML = `<div class="alert alert-success">✅ ${duplicadas.length} duplicata(s) removida(s). Restaram ${manter.length} reserva(s).</div>`;
 }
 
 // ==================== BACKUP ====================
