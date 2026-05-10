@@ -430,14 +430,16 @@
     <div class="card">
       <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">📥 Importar relatório do Airbnb</h2>
       <div class="alert alert-info">
-        <strong>Modelo recomendado:</strong> Use o CSV de transações exportado do Airbnb (ex: <code>airbnb_.csv</code>). Ele contém cada reserva com data, hóspede, noites, ganhos brutos, taxa de serviço e valor líquido pago — permitindo análises detalhadas.
-        <br><br>
-        <strong>Como exportar do Airbnb:</strong> Painel → Ganhos → Histórico de transações → Baixar CSV.
+        <strong>📊 Aceita 2 tipos de relatório do Airbnb:</strong><br><br>
+        <strong>1️⃣ Reservas programadas/futuras</strong> — importa como <span class="pill pill-blue">Pendente</span><br>
+        <strong>2️⃣ Histórico de transações pagas</strong> (com Payouts) — atualiza automaticamente para <span class="pill pill-green">Pago</span> ✓<br><br>
+        <strong>💡 Fluxo recomendado:</strong> primeiro importe as reservas programadas (vão como pendentes). Depois, quando o pagamento cair na conta, exporte o histórico de transações e importe de novo — o sistema vai <strong>identificar pelo Código de Confirmação</strong> e mudar o status para Pago automaticamente.<br><br>
+        <strong>Como exportar:</strong> Painel Airbnb → Ganhos → Histórico de transações → Baixar CSV.
       </div>
       <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
         <div style="font-size:32px; margin-bottom:8px">📂</div>
         <div style="font-weight:600; color:#222">Clique ou arraste o CSV do Airbnb aqui</div>
-        <div style="font-size:13px; color:#888; margin-top:4px">Aceita o formato de relatório de transações (Reservas + Payouts)</div>
+        <div style="font-size:13px; color:#888; margin-top:4px">Detecta automaticamente o tipo (programadas ou pagas) e atualiza o status</div>
       </div>
       <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importarCSV(event)">
     </div>
@@ -1348,16 +1350,27 @@ function renderReservas() {
     dados.reservas.forEach(r => {
       const pill = r.status === 'pago' ? 'pill-green' : 'pill-blue';
       const pillTxt = r.status === 'pago' ? 'Pago' : 'Pendente';
+      const hospedeDisplay = r.codigo
+        ? `<span title="Código: ${r.codigo}">${r.hospede||'-'}</span>`
+        : (r.hospede||'-');
       tbody.innerHTML += `<tr>
         <td>${r.inicio||'-'}</td><td>${r.fim||'-'}</td><td>${r.noites||0}</td>
-        <td>${r.hospede||'-'}</td>
+        <td>${hospedeDisplay}</td>
         <td>${fmt(r.bruto)}</td><td>${fmt(r.taxa)}</td><td>${fmt(r.limpeza)}</td><td><strong>${fmt(r.liquido)}</strong></td>
-        <td><span class="pill ${pill}">${pillTxt}</span></td>
+        <td><span class="pill ${pill}" style="cursor:pointer" onclick="toggleStatusReserva('${r.id}')" title="Clique para alternar status">${pillTxt}</span></td>
         <td><button class="btn btn-danger btn-sm" onclick="removerReserva('${r.id}')">×</button></td>
       </tr>`;
     });
   }
   document.getElementById('contador-reservas').textContent = dados.reservas.length + ' reservas';
+}
+
+function toggleStatusReserva(id) {
+  const r = dados.reservas.find(x => x.id === id);
+  if (!r) return;
+  r.status = r.status === 'pago' ? 'pendente' : 'pago';
+  salvarDados();
+  renderTudo();
 }
 
 // ==================== IMPORT CSV ====================
@@ -1375,6 +1388,7 @@ function importarCSV(ev) {
       const idx = (nome) => header.findIndex(h => h.toLowerCase().includes(nome.toLowerCase()));
 
       const iTipo = idx('tipo');
+      const iCodigo = idx('código de confirmação');
       const iInicio = idx('data de início');
       const iFim = idx('data de término');
       const iNoites = idx('noites');
@@ -1385,35 +1399,122 @@ function importarCSV(ev) {
       const iBruto = idx('ganhos brutos');
       const iPago = idx('pago');
 
+      // Mapear payouts por código de confirmação (pra saber quais reservas foram efetivamente pagas)
+      // Estratégia: se a coluna "Pago" tem valor preenchido NA LINHA DE RESERVA OU se há um Payout
+      // associado próximo, marcamos como paga.
+      // No CSV do Airbnb, cada reserva paga vem acompanhada de uma linha "Payout" — linha de Reserva
+      // tem "Valor" preenchido mas "Pago" vazio na mesma linha; o valor pago vem na linha "Payout" anterior.
+      // Mais simples: se o CSV é do tipo "histórico de transações" (tem coluna "Pago"), todas as reservas
+      // listadas são consideradas pagas, pois só aparecem se houve payout.
+
+      // Verificar se este CSV tem coluna Payout: se sim, é um relatório de transações pagas
+      const temPayouts = linhas.slice(1).some(l => {
+        const c = parseCSVLinha(l, sep);
+        return (c[iTipo]||'').toLowerCase().includes('payout');
+      });
+
       let novas = 0;
+      let atualizadas = 0;
+      let duplicadasIgnoradas = 0;
+      const detalhes = { atualizadas: [], novas: [] };
+
       for (let i = 1; i < linhas.length; i++) {
         const c = parseCSVLinha(linhas[i], sep);
         const tipo = (c[iTipo]||'').toLowerCase();
         if (!tipo.includes('reserva')) continue;
-        const r = {
-          id: uid(),
-          inicio: converterData(c[iInicio]),
-          fim: converterData(c[iFim]),
-          noites: parseInt(c[iNoites]) || 0,
-          hospede: c[iHospede] || '',
-          bruto: parseBR(c[iBruto] || c[iValor]),
-          taxa: parseBR(c[iTaxa]),
-          limpeza: parseBR(c[iLimpeza]),
-          liquido: parseBR(c[iPago] || c[iValor]),
-          status: (iPago >= 0 && c[iPago]) ? 'pago' : 'pendente'
-        };
-        if (!r.liquido && r.bruto) r.liquido = r.bruto - r.taxa;
-        if (!r.bruto) continue;
-        // evitar duplicidade pelo trio (inicio, hospede, bruto)
-        const dup = dados.reservas.find(x => x.inicio === r.inicio && x.hospede === r.hospede && Math.abs(x.bruto - r.bruto) < 0.01);
-        if (dup) continue;
-        dados.reservas.push(r);
-        novas++;
+
+        const codigo = iCodigo >= 0 ? (c[iCodigo]||'').trim() : '';
+        const inicioConv = converterData(c[iInicio]);
+        const fimConv = converterData(c[iFim]);
+        const noites = parseInt(c[iNoites]) || 0;
+        const hospede = (c[iHospede] || '').trim();
+        const bruto = parseBR(c[iBruto] || c[iValor]);
+        const taxa = parseBR(c[iTaxa]);
+        const limpeza = parseBR(c[iLimpeza]);
+        let liquido = parseBR(c[iPago] || c[iValor]);
+        if (!liquido && bruto) liquido = bruto - taxa;
+        if (!bruto) continue;
+
+        // Status: se o CSV é de transações pagas (tem payouts), marcar como pago
+        // Caso contrário, manter "pendente" (CSV de reservas programadas)
+        const statusNovo = temPayouts ? 'pago' : 'pendente';
+
+        // === MATCHING INTELIGENTE ===
+        // 1. Tenta achar pelo código de confirmação (mais confiável)
+        // 2. Se não achar, tenta pela combinação (data_início + hóspede + noites)
+        // 3. Se não achar, é uma reserva nova
+        let existente = null;
+
+        if (codigo) {
+          existente = dados.reservas.find(x => x.codigo && x.codigo === codigo);
+        }
+        if (!existente) {
+          existente = dados.reservas.find(x =>
+            x.inicio === inicioConv &&
+            (x.hospede||'').toLowerCase().trim() === hospede.toLowerCase() &&
+            (x.noites || 0) === noites
+          );
+        }
+
+        if (existente) {
+          // Atualizar reserva existente
+          let mudou = false;
+          if (codigo && !existente.codigo) { existente.codigo = codigo; mudou = true; }
+          if (existente.status !== statusNovo) { existente.status = statusNovo; mudou = true; }
+          // Atualizar valores se vieram diferentes (mantém os mais recentes)
+          if (Math.abs((existente.bruto||0) - bruto) > 0.01) { existente.bruto = bruto; mudou = true; }
+          if (Math.abs((existente.taxa||0) - taxa) > 0.01) { existente.taxa = taxa; mudou = true; }
+          if (Math.abs((existente.limpeza||0) - limpeza) > 0.01) { existente.limpeza = limpeza; mudou = true; }
+          if (Math.abs((existente.liquido||0) - liquido) > 0.01) { existente.liquido = liquido; mudou = true; }
+          if (!existente.fim && fimConv) { existente.fim = fimConv; mudou = true; }
+          if (mudou) {
+            atualizadas++;
+            detalhes.atualizadas.push(`${hospede} (${inicioConv}) → ${statusNovo}`);
+          } else {
+            duplicadasIgnoradas++;
+          }
+        } else {
+          // Reserva nova
+          dados.reservas.push({
+            id: uid(),
+            codigo: codigo || undefined,
+            inicio: inicioConv,
+            fim: fimConv,
+            noites,
+            hospede,
+            bruto, taxa, limpeza, liquido,
+            status: statusNovo
+          });
+          novas++;
+          detalhes.novas.push(`${hospede} (${inicioConv})`);
+        }
       }
+
       ev.target.value = '';
       salvarDados();
       renderTudo();
-      alert(`✅ ${novas} reservas importadas!`);
+
+      // Mensagem detalhada
+      let msg = '';
+      if (temPayouts) {
+        msg += `📥 Relatório de transações PAGAS detectado.\n\n`;
+      } else {
+        msg += `📥 Relatório de reservas programadas detectado.\n\n`;
+      }
+      msg += `✅ ${novas} reserva(s) nova(s)\n`;
+      msg += `🔄 ${atualizadas} reserva(s) atualizada(s)`;
+      if (atualizadas > 0 && temPayouts) msg += ` (marcadas como Pagas)`;
+      msg += `\n`;
+      if (duplicadasIgnoradas > 0) msg += `↪️ ${duplicadasIgnoradas} já estavam atualizadas\n`;
+
+      if (detalhes.atualizadas.length > 0 && detalhes.atualizadas.length <= 8) {
+        msg += `\nAtualizadas:\n` + detalhes.atualizadas.map(s => '• ' + s).join('\n');
+      }
+      if (detalhes.novas.length > 0 && detalhes.novas.length <= 8) {
+        msg += `\nNovas:\n` + detalhes.novas.map(s => '• ' + s).join('\n');
+      }
+
+      alert(msg);
     } catch (err) {
       alert('Erro ao importar: ' + err.message);
     }
