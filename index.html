@@ -311,12 +311,26 @@
 <div class="header">
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div>
-      <h1>🏠 Dashboard Airbnb</h1>
-      <p>Brasília Premium: Conforto próximo à Esplanada — Anfitrião: Alex Mendes</p>
+      <h1 id="header-titulo">🏠 Dashboard Airbnb</h1>
+      <p id="header-subtitulo">Carregando...</p>
     </div>
     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
       <div id="sync-status" style="font-size:13px; padding:6px 12px; background:rgba(255,255,255,0.15); border-radius:6px; min-width:140px; text-align:center">📴 Carregando...</div>
       <button class="reset-btn" onclick="resetAllData()">↻ Resetar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Barra de seletores: Imóveis + Ano -->
+<div style="background:white; border-bottom:1px solid #eee; padding:12px 24px; box-shadow:0 1px 3px rgba(0,0,0,0.05); position:sticky; top:0; z-index:50">
+  <div style="max-width:1400px; margin:0 auto; display:flex; gap:16px; flex-wrap:wrap; align-items:center">
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+      <span style="font-size:12px; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:0.5px">Imóvel:</span>
+      <div id="seletor-imoveis" style="display:flex; gap:6px; flex-wrap:wrap"></div>
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+      <span style="font-size:12px; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:0.5px">Ano:</span>
+      <div id="seletor-anos" style="display:flex; gap:6px; flex-wrap:wrap"></div>
     </div>
   </div>
 </div>
@@ -330,6 +344,7 @@
     <button class="tab" onclick="showTab('despesas', this)">📉 Despesas Mensais</button>
     <button class="tab" onclick="showTab('breakeven', this)">⚖️ Breakeven</button>
     <button class="tab" onclick="showTab('impostos', this)">🧾 Impostos</button>
+    <button class="tab" onclick="showTab('imoveis', this)">🏘️ Imóveis</button>
     <button class="tab" onclick="showTab('config', this)">⚙️ Configurações</button>
   </div>
 
@@ -967,6 +982,21 @@
     </div>
   </div>
 
+  <!-- =================== IMÓVEIS =================== -->
+  <div id="imoveis" class="content">
+    <div class="alert alert-info" style="margin-bottom:16px">
+      🏘️ <strong>Multi-imóveis:</strong> cadastre quantos imóveis quiser. Cada um tem suas próprias reservas, investimento, despesas e configurações tributárias. Use os botões no topo da página para alternar entre eles ou ver o consolidado.
+    </div>
+
+    <div class="card">
+      <div class="header-actions">
+        <h2>🏘️ Seus imóveis</h2>
+        <button class="btn btn-primary btn-sm" onclick="adicionarImovel()">+ Novo imóvel</button>
+      </div>
+      <div id="lista-imoveis" style="margin-top:14px"></div>
+    </div>
+  </div>
+
   <!-- =================== CONFIG =================== -->
   <div id="config" class="content">
     <div class="card">
@@ -1126,18 +1156,391 @@ async function carregarLocalStorage() {
   return false;
 }
 
+function uidImovel() { return 'imv_' + Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+
 function garantirEstruturaDados() {
   if (!dados.reservas) dados.reservas = [];
   if (!dados.investimento) dados.investimento = [];
   if (!dados.despesas) dados.despesas = [];
   if (!dados.config) dados.config = {};
-  if (!dados.impostosMes) dados.impostosMes = {}; // { "2026-04": { deducaoOverride?: number, pago?: boolean, dataPagamento?: string } }
-  if (typeof dados.config.parcelaApto !== 'number') dados.config.parcelaApto = 0;
-  if (!dados.config.mesInicioOperacao) dados.config.mesInicioOperacao = '2026-04';
-  if (!dados.config.regime) dados.config.regime = 'renda-alta';
-  if (typeof dados.config.aliquotaCustom !== 'number') dados.config.aliquotaCustom = 27.5;
-  if (typeof dados.config.deducoes !== 'number') dados.config.deducoes = 0;
-  if (typeof dados.config.deducoesAuto !== 'boolean') dados.config.deducoesAuto = true;
+  if (!dados.impostosMes) dados.impostosMes = {};
+
+  // === Multi-imóveis: migração de dados antigos ===
+  if (!dados.imoveis || !Array.isArray(dados.imoveis) || dados.imoveis.length === 0) {
+    // Criar imóvel padrão com dados que já existiam em dados.config
+    const imvPadrao = {
+      id: uidImovel(),
+      nome: 'Brasília Premium',
+      icone: '🏠',
+      cor: '#FF385C',
+      parcelaApto: dados.config.parcelaApto || 0,
+      mesInicioOperacao: dados.config.mesInicioOperacao || '2026-04',
+      regime: dados.config.regime || 'renda-alta',
+      aliquotaCustom: dados.config.aliquotaCustom != null ? dados.config.aliquotaCustom : 27.5,
+      deducoes: dados.config.deducoes || 0,
+      deducoesAuto: dados.config.deducoesAuto !== false,
+      impostosMes: { ...(dados.impostosMes || {}) }
+    };
+    dados.imoveis = [imvPadrao];
+
+    // Migrar todos os dados existentes para o imóvel padrão
+    dados.reservas.forEach(r => { if (!r.imovelId) r.imovelId = imvPadrao.id; });
+    dados.investimento.forEach(i => { if (!i.imovelId) i.imovelId = imvPadrao.id; });
+    dados.despesas.forEach(d => { if (!d.imovelId) d.imovelId = imvPadrao.id; });
+  }
+
+  // Garantir que cada imóvel tem todos os campos
+  dados.imoveis.forEach(imv => {
+    if (!imv.id) imv.id = uidImovel();
+    if (!imv.nome) imv.nome = 'Imóvel sem nome';
+    if (!imv.icone) imv.icone = '🏠';
+    if (!imv.cor) imv.cor = '#FF385C';
+    if (typeof imv.parcelaApto !== 'number') imv.parcelaApto = 0;
+    if (!imv.mesInicioOperacao) imv.mesInicioOperacao = '2026-04';
+    if (!imv.regime) imv.regime = 'renda-alta';
+    if (typeof imv.aliquotaCustom !== 'number') imv.aliquotaCustom = 27.5;
+    if (typeof imv.deducoes !== 'number') imv.deducoes = 0;
+    if (typeof imv.deducoesAuto !== 'boolean') imv.deducoesAuto = true;
+    if (!imv.impostosMes) imv.impostosMes = {};
+  });
+
+  // Atribuir todos os dados sem imovelId ao primeiro imóvel (fallback)
+  if (dados.imoveis.length > 0) {
+    const primeiro = dados.imoveis[0].id;
+    dados.reservas.forEach(r => { if (!r.imovelId) r.imovelId = primeiro; });
+    dados.investimento.forEach(i => { if (!i.imovelId) i.imovelId = primeiro; });
+    dados.despesas.forEach(d => { if (!d.imovelId) d.imovelId = primeiro; });
+  }
+
+  // Filtros ativos (não persistem, só na sessão)
+  // dados.filtroImovelId: id do imóvel selecionado ou 'todos'
+  // dados.filtroAno: 'todos' ou ano específico
+}
+
+// ========== HELPERS DE MULTI-IMÓVEIS ==========
+// filtroImovel: id do imóvel ou 'todos' (consolidado)
+// filtroAno: 'todos' ou ano
+
+function imovelAtual() {
+  // Retorna o objeto do imóvel selecionado, ou null se 'todos'
+  const id = dados.filtroImovelId || (dados.imoveis[0] && dados.imoveis[0].id);
+  if (id === 'todos') return null;
+  return dados.imoveis.find(i => i.id === id) || dados.imoveis[0];
+}
+
+function getImoveisAtivos() {
+  // Retorna lista de imóveis considerados pelo filtro atual
+  const id = dados.filtroImovelId;
+  if (!id || id === 'todos') return dados.imoveis;
+  const um = dados.imoveis.find(i => i.id === id);
+  return um ? [um] : dados.imoveis;
+}
+
+function getReservasFiltradas() {
+  const imoveisIds = new Set(getImoveisAtivos().map(i => i.id));
+  let lista = dados.reservas.filter(r => imoveisIds.has(r.imovelId));
+  if (dados.filtroAno && dados.filtroAno !== 'todos') {
+    lista = lista.filter(r => (r.inicio||'').startsWith(String(dados.filtroAno)));
+  }
+  return lista;
+}
+
+function getInvestimentoFiltrado() {
+  const imoveisIds = new Set(getImoveisAtivos().map(i => i.id));
+  return dados.investimento.filter(i => imoveisIds.has(i.imovelId));
+}
+
+function getDespesasFiltradas() {
+  const imoveisIds = new Set(getImoveisAtivos().map(i => i.id));
+  let lista = dados.despesas.filter(d => imoveisIds.has(d.imovelId));
+  if (dados.filtroAno && dados.filtroAno !== 'todos') {
+    lista = lista.filter(d => (d.mes||'').startsWith(String(dados.filtroAno)));
+  }
+  return lista;
+}
+
+// Helper: configuração efetiva (do imóvel atual, ou consolidada se "todos")
+function configEfetiva() {
+  const imv = imovelAtual();
+  if (imv) return imv;
+  // Modo "todos": usa o primeiro imóvel como base para regime tributário
+  return dados.imoveis[0] || {
+    parcelaApto: 0, mesInicioOperacao: '2026-04',
+    regime: 'renda-alta', aliquotaCustom: 27.5,
+    deducoes: 0, deducoesAuto: true, impostosMes: {}
+  };
+}
+
+// Lista de anos com dados (para o seletor de ano)
+function anosComDados() {
+  const anos = new Set();
+  dados.reservas.forEach(r => { if (r.inicio) anos.add(r.inicio.slice(0,4)); });
+  dados.despesas.forEach(d => { if (d.mes) anos.add(d.mes.slice(0,4)); });
+  return [...anos].sort();
+}
+
+// ========== UI: SELETORES (IMÓVEL + ANO) ==========
+function renderSeletorImoveis() {
+  const el = document.getElementById('seletor-imoveis');
+  if (!el) return;
+  // Garantir que o filtro tem valor válido
+  if (!dados.filtroImovelId) {
+    dados.filtroImovelId = dados.imoveis[0] ? dados.imoveis[0].id : 'todos';
+  }
+  // Se o filtro aponta para um imóvel que não existe mais
+  if (dados.filtroImovelId !== 'todos' && !dados.imoveis.find(i => i.id === dados.filtroImovelId)) {
+    dados.filtroImovelId = dados.imoveis[0] ? dados.imoveis[0].id : 'todos';
+  }
+
+  let html = '';
+  dados.imoveis.forEach(imv => {
+    const ativo = dados.filtroImovelId === imv.id;
+    const cor = imv.cor || '#FF385C';
+    const bg = ativo ? cor : '#f0f0f0';
+    const fg = ativo ? 'white' : '#333';
+    const borda = ativo ? cor : '#e0e0e0';
+    html += `<button onclick="trocarImovel('${imv.id}')" style="
+      padding:7px 14px; border:1.5px solid ${borda}; background:${bg}; color:${fg};
+      border-radius:8px; cursor:pointer; font-size:13px; font-weight:${ativo?'600':'500'};
+      transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;
+    ">${imv.icone || '🏠'} ${imv.nome}</button>`;
+  });
+  // Botão "Todos" (consolidado)
+  if (dados.imoveis.length > 1) {
+    const ativo = dados.filtroImovelId === 'todos';
+    html += `<button onclick="trocarImovel('todos')" style="
+      padding:7px 14px; border:1.5px solid ${ativo?'#222':'#e0e0e0'}; background:${ativo?'#222':'#f0f0f0'};
+      color:${ativo?'white':'#333'}; border-radius:8px; cursor:pointer; font-size:13px;
+      font-weight:${ativo?'600':'500'}; display:inline-flex; align-items:center; gap:6px;
+    ">📊 Todos (consolidado)</button>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderSeletorAnos() {
+  const el = document.getElementById('seletor-anos');
+  if (!el) return;
+  const anos = anosComDados();
+  if (!dados.filtroAno) dados.filtroAno = 'todos';
+  let html = '';
+  // Botão Todos
+  const ativoTodos = dados.filtroAno === 'todos' || !dados.filtroAno;
+  html += `<button onclick="trocarAno('todos')" style="
+    padding:6px 12px; border:1px solid ${ativoTodos?'#0073E6':'#e0e0e0'};
+    background:${ativoTodos?'#0073E6':'#f0f0f0'}; color:${ativoTodos?'white':'#333'};
+    border-radius:8px; cursor:pointer; font-size:12px; font-weight:${ativoTodos?'600':'500'};
+  ">Todos</button>`;
+  anos.forEach(ano => {
+    const ativo = String(dados.filtroAno) === String(ano);
+    html += `<button onclick="trocarAno('${ano}')" style="
+      padding:6px 12px; border:1px solid ${ativo?'#0073E6':'#e0e0e0'};
+      background:${ativo?'#0073E6':'#f0f0f0'}; color:${ativo?'white':'#333'};
+      border-radius:8px; cursor:pointer; font-size:12px; font-weight:${ativo?'600':'500'};
+    ">${ano}</button>`;
+  });
+  el.innerHTML = html;
+}
+
+function trocarImovel(id) {
+  dados.filtroImovelId = id;
+  atualizarHeader();
+  renderTudo();
+}
+
+function trocarAno(ano) {
+  dados.filtroAno = ano;
+  renderTudo();
+}
+
+function atualizarHeader() {
+  const titEl = document.getElementById('header-titulo');
+  const subEl = document.getElementById('header-subtitulo');
+  if (!titEl || !subEl) return;
+  if (dados.filtroImovelId === 'todos') {
+    titEl.textContent = '🏘️ Dashboard Multi-Imóveis';
+    subEl.textContent = `Visão consolidada de ${dados.imoveis.length} imóveis`;
+  } else {
+    const imv = imovelAtual();
+    if (imv) {
+      titEl.innerHTML = `${imv.icone || '🏠'} ${imv.nome}`;
+      const total = dados.imoveis.length;
+      subEl.textContent = total > 1 ? `${total} imóveis cadastrados — Anfitrião: Alex Mendes` : 'Anfitrião: Alex Mendes';
+    }
+  }
+}
+
+// ========== CRUD DE IMÓVEIS ==========
+function renderImoveis() {
+  const cont = document.getElementById('lista-imoveis');
+  if (!cont) return;
+  if (!dados.imoveis.length) {
+    cont.innerHTML = '<div class="empty-state">Nenhum imóvel cadastrado.</div>';
+    return;
+  }
+
+  let html = '<div class="grid grid-2">';
+  dados.imoveis.forEach(imv => {
+    const reservasIm = dados.reservas.filter(r => r.imovelId === imv.id);
+    const invIm = dados.investimento.filter(i => i.imovelId === imv.id);
+    const despIm = dados.despesas.filter(d => d.imovelId === imv.id);
+    const totalReceita = reservasIm.filter(r => r.status === 'pago').reduce((s,r) => s + (r.liquido||0), 0);
+    const totalInv = invIm.reduce((s,i) => s + (i.valor||0), 0);
+    const regimeLabel = imv.regime === 'renda-alta' ? '27,5% marginal'
+                      : imv.regime === 'carne-leao' ? 'Carnê-Leão'
+                      : imv.regime === 'custom' ? imv.aliquotaCustom + '%'
+                      : 'Isento';
+
+    html += `<div class="card" style="border-left:4px solid ${imv.cor || '#FF385C'}; position:relative">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px">
+        <div>
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700; color:#222">
+            ${imv.icone || '🏠'} ${imv.nome}
+          </h3>
+          <div style="font-size:12px; color:#666; margin-top:4px">
+            Início operação: ${nomeMes(imv.mesInicioOperacao)} · Regime: ${regimeLabel}
+          </div>
+        </div>
+        <div style="display:flex; gap:4px">
+          <button class="btn-edit" onclick="editarImovel('${imv.id}')" title="Editar">✏️</button>
+          ${dados.imoveis.length > 1 ? `<button class="btn btn-danger btn-sm" onclick="removerImovel('${imv.id}')" title="Remover">×</button>` : ''}
+        </div>
+      </div>
+      <div class="grid grid-3" style="gap:8px">
+        <div style="text-align:center; padding:8px; background:#f8f8f8; border-radius:6px">
+          <div style="font-size:10px; color:#666; text-transform:uppercase">Reservas</div>
+          <div style="font-size:18px; font-weight:600; color:#222">${reservasIm.length}</div>
+        </div>
+        <div style="text-align:center; padding:8px; background:#f8f8f8; border-radius:6px">
+          <div style="font-size:10px; color:#666; text-transform:uppercase">Receita Paga</div>
+          <div style="font-size:14px; font-weight:600; color:#00A878">${fmt(totalReceita)}</div>
+        </div>
+        <div style="text-align:center; padding:8px; background:#f8f8f8; border-radius:6px">
+          <div style="font-size:10px; color:#666; text-transform:uppercase">Investimento</div>
+          <div style="font-size:14px; font-weight:600; color:#7B61FF">${fmt(totalInv)}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:#666">
+        ${invIm.length} ${invIm.length===1?'item de invest.':'itens de invest.'} · ${despIm.length} ${despIm.length===1?'despesa':'despesas'} · Parcela apto: ${fmt(imv.parcelaApto||0)}/mês
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function adicionarImovel() {
+  const iconesDisponiveis = ['🏠', '🏡', '🏢', '🏘️', '🌆', '🏙️', '🌇', '🏖️'];
+  abrirModalEdicao(
+    `+ Novo Imóvel`,
+    [
+      { id: 'nome', label: 'Nome do imóvel', valor: 'Imóvel ' + (dados.imoveis.length + 1), placeholder: 'Ex: Apto Brasília Sul' },
+      { tipo: 'row', campos: [
+        { id: 'icone', label: 'Ícone (emoji)', valor: '🏠', placeholder: '🏠' },
+        { id: 'cor', label: 'Cor (hex)', valor: '#FF385C', tipo: 'color' }
+      ]},
+      { tipo: 'row', campos: [
+        { id: 'mesInicioOperacao', label: 'Mês início operação', valor: '2026-04', tipo: 'month' },
+        { id: 'parcelaApto', label: 'Parcela apto (R$/mês)', valor: 0, tipo: 'number', step: '0.01', min: '0' }
+      ]},
+      { id: 'regime', label: 'Regime tributário', valor: 'renda-alta', tipo: 'select', opcoes: [
+        { valor: 'renda-alta', label: '27,5% marginal (renda alta)' },
+        { valor: 'carne-leao', label: 'Carnê-Leão progressivo' },
+        { valor: 'custom', label: 'Alíquota customizada' },
+        { valor: 'isento', label: 'Isento' }
+      ]},
+      { id: 'aliquotaCustom', label: 'Alíquota custom (%) — só se aplicável', valor: 27.5, tipo: 'number', step: '0.01', min: '0' }
+    ],
+    (v) => {
+      const novo = {
+        id: uidImovel(),
+        nome: v.nome || 'Imóvel sem nome',
+        icone: v.icone || '🏠',
+        cor: v.cor || '#FF385C',
+        mesInicioOperacao: v.mesInicioOperacao || '2026-04',
+        parcelaApto: parseFloat(v.parcelaApto) || 0,
+        regime: v.regime || 'renda-alta',
+        aliquotaCustom: parseFloat(v.aliquotaCustom) || 27.5,
+        deducoes: 0,
+        deducoesAuto: true,
+        impostosMes: {}
+      };
+      dados.imoveis.push(novo);
+      // Selecionar automaticamente o novo imóvel
+      dados.filtroImovelId = novo.id;
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+function editarImovel(id) {
+  const imv = dados.imoveis.find(i => i.id === id);
+  if (!imv) return;
+  abrirModalEdicao(
+    `✏️ Editar Imóvel`,
+    [
+      { id: 'nome', label: 'Nome do imóvel', valor: imv.nome },
+      { tipo: 'row', campos: [
+        { id: 'icone', label: 'Ícone (emoji)', valor: imv.icone || '🏠' },
+        { id: 'cor', label: 'Cor', valor: imv.cor || '#FF385C', tipo: 'color' }
+      ]},
+      { tipo: 'row', campos: [
+        { id: 'mesInicioOperacao', label: 'Mês início operação', valor: imv.mesInicioOperacao, tipo: 'month' },
+        { id: 'parcelaApto', label: 'Parcela apto (R$/mês)', valor: imv.parcelaApto, tipo: 'number', step: '0.01', min: '0' }
+      ]},
+      { id: 'regime', label: 'Regime tributário', valor: imv.regime, tipo: 'select', opcoes: [
+        { valor: 'renda-alta', label: '27,5% marginal (renda alta)' },
+        { valor: 'carne-leao', label: 'Carnê-Leão progressivo' },
+        { valor: 'custom', label: 'Alíquota customizada' },
+        { valor: 'isento', label: 'Isento' }
+      ]},
+      { id: 'aliquotaCustom', label: 'Alíquota custom (%)', valor: imv.aliquotaCustom, tipo: 'number', step: '0.01', min: '0' }
+    ],
+    (v) => {
+      imv.nome = v.nome || 'Imóvel sem nome';
+      imv.icone = v.icone || '🏠';
+      imv.cor = v.cor || '#FF385C';
+      imv.mesInicioOperacao = v.mesInicioOperacao || '2026-04';
+      imv.parcelaApto = parseFloat(v.parcelaApto) || 0;
+      imv.regime = v.regime || 'renda-alta';
+      imv.aliquotaCustom = parseFloat(v.aliquotaCustom) || 27.5;
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+function removerImovel(id) {
+  const imv = dados.imoveis.find(i => i.id === id);
+  if (!imv) return;
+  if (dados.imoveis.length <= 1) {
+    alert('Você precisa ter pelo menos um imóvel cadastrado.');
+    return;
+  }
+  const qtdReservas = dados.reservas.filter(r => r.imovelId === id).length;
+  const qtdInv = dados.investimento.filter(i => i.imovelId === id).length;
+  const qtdDesp = dados.despesas.filter(d => d.imovelId === id).length;
+
+  if (!confirm(
+    `⚠️ Remover o imóvel "${imv.nome}"?\n\n` +
+    `Isso vai apagar TAMBÉM:\n` +
+    `• ${qtdReservas} reserva(s)\n` +
+    `• ${qtdInv} item(ns) de investimento\n` +
+    `• ${qtdDesp} despesa(s)\n\n` +
+    `Esta ação NÃO pode ser desfeita. Confirma?`
+  )) return;
+
+  dados.reservas = dados.reservas.filter(r => r.imovelId !== id);
+  dados.investimento = dados.investimento.filter(i => i.imovelId !== id);
+  dados.despesas = dados.despesas.filter(d => d.imovelId !== id);
+  dados.imoveis = dados.imoveis.filter(i => i.id !== id);
+
+  // Se o filtro estava nesse imóvel, mudar para o primeiro
+  if (dados.filtroImovelId === id) {
+    dados.filtroImovelId = dados.imoveis[0].id;
+  }
+  salvarDados();
+  renderTudo();
 }
 
 async function salvarNuvem() {
@@ -1279,12 +1682,19 @@ function desconectarNuvem() {
 }
 
 function salvarConfig() {
+  // Em modo "todos", não permitir edição
+  if (dados.filtroImovelId === 'todos') {
+    alert('Selecione um imóvel específico no topo para alterar suas configurações.');
+    renderTudo();
+    return;
+  }
+  const cfg = configEfetiva();
   const p = parseFloat(document.getElementById('parcela-apto').value) || 0;
   const pc = parseFloat(document.getElementById('parcela-apto-config').value) || 0;
-  dados.config.parcelaApto = pc || p || 0;
-  document.getElementById('parcela-apto').value = dados.config.parcelaApto || '';
-  document.getElementById('parcela-apto-config').value = dados.config.parcelaApto || '';
-  dados.config.mesInicioOperacao = document.getElementById('mes-inicio-operacao').value || '2026-04';
+  cfg.parcelaApto = pc || p || 0;
+  document.getElementById('parcela-apto').value = cfg.parcelaApto || '';
+  document.getElementById('parcela-apto-config').value = cfg.parcelaApto || '';
+  cfg.mesInicioOperacao = document.getElementById('mes-inicio-operacao').value || '2026-04';
   salvarDados();
 }
 
@@ -1400,9 +1810,16 @@ function showTab(id, btn) {
 }
 
 // ==================== RESERVAS ====================
+function imovelIdParaNovo() {
+  // Se "Todos" está selecionado, usa o primeiro imóvel. Senão, o imóvel atual.
+  const imv = imovelAtual();
+  return imv ? imv.id : (dados.imoveis[0] && dados.imoveis[0].id);
+}
+
 function adicionarReserva() {
   const r = {
     id: uid(),
+    imovelId: imovelIdParaNovo(),
     inicio: document.getElementById('rsv-inicio').value,
     fim: document.getElementById('rsv-fim').value,
     noites: parseInt(document.getElementById('rsv-noites').value) || 1,
@@ -1432,17 +1849,29 @@ function removerReserva(id) {
 function renderReservas() {
   const tbody = document.querySelector('#tabela-reservas tbody');
   tbody.innerHTML = '';
-  if (!dados.reservas.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Nenhuma reserva cadastrada. Importe um CSV ou adicione manualmente.</td></tr>';
+  const listaF = getReservasFiltradas();
+  const mostraImovel = dados.filtroImovelId === 'todos' || dados.imoveis.length > 1;
+
+  // Atualizar colspan
+  const headerExtra = document.getElementById('reserva-th-imovel');
+  if (headerExtra) headerExtra.style.display = mostraImovel ? '' : 'none';
+
+  if (!listaF.length) {
+    tbody.innerHTML = `<tr><td colspan="${mostraImovel ? 11 : 10}" class="empty-state">Nenhuma reserva cadastrada nesta visão. Importe um CSV ou adicione manualmente.</td></tr>`;
   } else {
-    dados.reservas.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||''));
-    dados.reservas.forEach(r => {
+    const ordenada = [...listaF].sort((a,b) => (a.inicio||'').localeCompare(b.inicio||''));
+    ordenada.forEach(r => {
       const pill = r.status === 'pago' ? 'pill-green' : 'pill-blue';
       const pillTxt = r.status === 'pago' ? 'Pago' : 'Pendente';
       const hospedeDisplay = r.codigo
         ? `<span title="Código: ${r.codigo}">${r.hospede||'-'}</span>`
         : (r.hospede||'-');
+      const imv = dados.imoveis.find(i => i.id === r.imovelId);
+      const colImovel = mostraImovel
+        ? `<td>${imv ? `<span class="pill" style="background:${imv.cor||'#FF385C'}33; color:${imv.cor||'#FF385C'}">${imv.icone||'🏠'} ${imv.nome}</span>` : '—'}</td>`
+        : '';
       tbody.innerHTML += `<tr>
+        ${colImovel}
         <td>${r.inicio||'-'}</td><td>${r.fim||'-'}</td><td>${r.noites||0}</td>
         <td>${hospedeDisplay}</td>
         <td>${fmt(r.bruto)}</td><td>${fmt(r.taxa)}</td><td>${fmt(r.limpeza)}</td><td><strong>${fmt(r.liquido)}</strong></td>
@@ -1454,7 +1883,7 @@ function renderReservas() {
       </tr>`;
     });
   }
-  document.getElementById('contador-reservas').textContent = dados.reservas.length + ' reservas';
+  document.getElementById('contador-reservas').textContent = listaF.length + ' reservas';
 }
 
 function toggleStatusReserva(id) {
@@ -1469,6 +1898,27 @@ function toggleStatusReserva(id) {
 function importarCSV(ev) {
   const file = ev.target.files[0];
   if (!file) return;
+
+  // Se há mais de um imóvel, perguntar para qual importar
+  let imovelDestino = imovelIdParaNovo();
+  if (dados.imoveis.length > 1) {
+    let menu = 'Para qual imóvel importar as reservas?\n\n';
+    dados.imoveis.forEach((imv, i) => {
+      menu += `${i + 1}. ${imv.icone || '🏠'} ${imv.nome}\n`;
+    });
+    const ehAtual = dados.filtroImovelId !== 'todos' ? imovelAtual() : null;
+    const defaultIdx = ehAtual ? (dados.imoveis.findIndex(i => i.id === ehAtual.id) + 1) : 1;
+    const r = prompt(menu + '\nDigite o número:', defaultIdx);
+    if (r === null) { ev.target.value = ''; return; }
+    const idx = parseInt(r);
+    if (isNaN(idx) || idx < 1 || idx > dados.imoveis.length) {
+      alert('Opção inválida.');
+      ev.target.value = '';
+      return;
+    }
+    imovelDestino = dados.imoveis[idx - 1].id;
+  }
+
   const reader = new FileReader();
   reader.onload = e => {
     try {
@@ -1532,9 +1982,9 @@ function importarCSV(ev) {
         const statusNovo = temPayouts ? 'pago' : 'pendente';
 
         // === MATCHING INTELIGENTE ===
-        // 1. Tenta achar pelo código de confirmação (mais confiável)
-        // 2. Se não achar, tenta pela combinação (data_início + hóspede + noites)
-        // 3. Se não achar, é uma reserva nova
+        // 1. Tenta achar pelo código de confirmação (mais confiável) — em qualquer imóvel
+        // 2. Se não achar, tenta pela combinação dentro do imóvel destino
+        // 3. Se não achar, é uma reserva nova no imóvel destino
         let existente = null;
 
         if (codigo) {
@@ -1542,6 +1992,7 @@ function importarCSV(ev) {
         }
         if (!existente) {
           existente = dados.reservas.find(x =>
+            x.imovelId === imovelDestino &&
             x.inicio === inicioConv &&
             (x.hospede||'').toLowerCase().trim() === hospede.toLowerCase() &&
             (x.noites || 0) === noites
@@ -1553,7 +2004,6 @@ function importarCSV(ev) {
           let mudou = false;
           if (codigo && !existente.codigo) { existente.codigo = codigo; mudou = true; }
           if (existente.status !== statusNovo) { existente.status = statusNovo; mudou = true; }
-          // Atualizar valores se vieram diferentes (mantém os mais recentes)
           if (Math.abs((existente.bruto||0) - bruto) > 0.01) { existente.bruto = bruto; mudou = true; }
           if (Math.abs((existente.taxa||0) - taxa) > 0.01) { existente.taxa = taxa; mudou = true; }
           if (Math.abs((existente.limpeza||0) - limpeza) > 0.01) { existente.limpeza = limpeza; mudou = true; }
@@ -1566,9 +2016,10 @@ function importarCSV(ev) {
             duplicadasIgnoradas++;
           }
         } else {
-          // Reserva nova
+          // Reserva nova no imóvel destino
           dados.reservas.push({
             id: uid(),
+            imovelId: imovelDestino,
             codigo: codigo || undefined,
             inicio: inicioConv,
             fim: fimConv,
@@ -1588,6 +2039,10 @@ function importarCSV(ev) {
 
       // Mensagem detalhada
       let msg = '';
+      const imvDest = dados.imoveis.find(i => i.id === imovelDestino);
+      if (imvDest && dados.imoveis.length > 1) {
+        msg += `🏠 Imóvel: ${imvDest.icone || ''} ${imvDest.nome}\n\n`;
+      }
       if (temPayouts) {
         msg += `📥 Relatório de transações PAGAS detectado.\n\n`;
       } else {
@@ -1643,6 +2098,7 @@ function adicionarInvestimento() {
   const parcelas = parseInt(document.getElementById('inv-parcelas-qtd').value) || 1;
   const item = {
     id: uid(),
+    imovelId: imovelIdParaNovo(),
     onde: document.getElementById('inv-onde').value,
     quando: document.getElementById('inv-quando').value,
     oque: document.getElementById('inv-oque').value,
@@ -1914,6 +2370,7 @@ function renderInvestimento() {
   const tbody = document.querySelector('#tabela-investimento tbody');
   tbody.innerHTML = '';
   const hoje = mesAtualYM();
+  const investF = getInvestimentoFiltrado();
 
   // Atualizar indicador de filtros ativos
   const filtrosAtivos = Object.entries(filtrosInv).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}`);
@@ -1924,13 +2381,13 @@ function renderInvestimento() {
     if (elLimpar) elLimpar.style.display = filtrosAtivos.length ? '' : 'none';
   }
 
-  if (!dados.investimento.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum item de investimento cadastrado.</td></tr>';
+  if (!investF.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum item de investimento neste imóvel/visão.</td></tr>';
     return;
   }
 
   // ordenar por data de compra
-  const ordenada = [...dados.investimento].sort((a, b) => {
+  const ordenada = [...investF].sort((a, b) => {
     const qa = parseQuandoCompra(a.quando) || '9999-99';
     const qb = parseQuandoCompra(b.quando) || '9999-99';
     return qa.localeCompare(qb);
@@ -1986,13 +2443,17 @@ function exportarInvestimento() {
 
 // ==================== CRONOGRAMA DE PARCELAS ====================
 function calcularCronogramaCompleto() {
-  // retorna lista de meses com {mes, ymStr, parcelas (qtd ativas), valor, pago_acum, falta, pct}
-  if (!dados.investimento.length) return [];
+  const investF = getInvestimentoFiltrado();
+  if (!investF.length) return [];
 
-  // Determinar a faixa de meses: do menor "primeira parcela" ao maior "última parcela"
   let mesIni = null, mesFim = null;
-  dados.investimento.forEach(item => {
-    const compra = parseQuandoCompra(item.quando) || (dados.config.mesInicioOperacao || '2026-04');
+  investF.forEach(item => {
+    let mesIniDefault = '2026-04';
+    if (item.imovelId) {
+      const imv = dados.imoveis.find(i => i.id === item.imovelId);
+      if (imv && imv.mesInicioOperacao) mesIniDefault = imv.mesInicioOperacao;
+    }
+    const compra = parseQuandoCompra(item.quando) || mesIniDefault;
     const primeira = adicionarMesesAYM(compra, 1);
     const ultima = adicionarMesesAYM(primeira, (item.parcelas || 1) - 1);
     if (!mesIni || primeira < mesIni) mesIni = primeira;
@@ -2001,7 +2462,6 @@ function calcularCronogramaCompleto() {
 
   if (!mesIni || !mesFim) return [];
 
-  // Estende 6 meses pra além do fim, mas limita pra não passar de 24 meses no total
   const meses = [];
   let cur = mesIni;
   let safety = 0;
@@ -2011,12 +2471,12 @@ function calcularCronogramaCompleto() {
     safety++;
   }
 
-  const valorTotalInv = dados.investimento.reduce((s, i) => s + (i.valor || 0), 0);
+  const valorTotalInv = investF.reduce((s, i) => s + (i.valor || 0), 0);
 
   let pagoAcum = 0;
   return meses.map(ym => {
     let valorMes = 0, qtdAtivas = 0;
-    dados.investimento.forEach(item => {
+    investF.forEach(item => {
       const p = parcelaItemNoMes(item, ym);
       if (p > 0) { valorMes += p; qtdAtivas++; }
     });
@@ -2034,7 +2494,8 @@ function renderCronograma() {
   const hoje = mesAtualYM();
 
   // KPIs do topo
-  const valorTotal = dados.investimento.reduce((s, i) => s + (i.valor || 0), 0);
+  const investF = getInvestimentoFiltrado();
+  const valorTotal = investF.reduce((s, i) => s + (i.valor || 0), 0);
   const parcelaHoje = parcelasInvestimentoNoMes(hoje);
   const itemHoje = cronograma.find(c => c.mes === hoje);
   const pagoHoje = itemHoje ? itemHoje.pagoAcum : (cronograma.length && cronograma[cronograma.length-1].mes < hoje ? valorTotal : 0);
@@ -2043,7 +2504,7 @@ function renderCronograma() {
 
   // Quantos itens com parcela ativa hoje
   let itensAtivosHoje = 0;
-  dados.investimento.forEach(i => { if (parcelaItemNoMes(i, hoje) > 0) itensAtivosHoje++; });
+  investF.forEach(i => { if (parcelaItemNoMes(i, hoje) > 0) itensAtivosHoje++; });
 
   document.getElementById('inv-total').textContent = fmt(valorTotal);
   document.getElementById('inv-parcela-atual').textContent = fmt(parcelaHoje);
@@ -2114,7 +2575,7 @@ function renderChartCronograma(cronograma) {
   if (!cronograma.length) return;
 
   const hoje = mesAtualYM();
-  const valorTotal = dados.investimento.reduce((s, i) => s + (i.valor || 0), 0);
+  const valorTotal = getInvestimentoFiltrado().reduce((s, i) => s + (i.valor || 0), 0);
 
   charts.cronograma = new Chart(ctx, {
     data: {
@@ -2185,6 +2646,7 @@ function adicionarDespesa() {
   const valor = parseFloat(document.getElementById('desp-valor').value) || 0;
   const cat = document.getElementById('desp-categoria').value;
   const desc = document.getElementById('desp-descricao').value;
+  const imvId = imovelIdParaNovo();
 
   if (!baseMes || !valor) { alert('Preencha mês e valor'); return; }
   if (!/^\d{4}-\d{2}$/.test(baseMes)) {
@@ -2197,14 +2659,14 @@ function adicionarDespesa() {
     while (a < 2030 || (a === 2030 && m <= 12)) {
       if (a > 2030) break;
       const ym = a + '-' + String(m).padStart(2,'0');
-      dados.despesas.push({ id: uid(), mes: ym, categoria: cat, descricao: desc, valor: valor });
+      dados.despesas.push({ id: uid(), imovelId: imvId, mes: ym, categoria: cat, descricao: desc, valor: valor });
       m++;
       if (m > 12) { m = 1; a++; }
       // limita a 12 meses para frente
-      if (dados.despesas.filter(d=>d.descricao===desc && d.categoria===cat).length >= 12) break;
+      if (dados.despesas.filter(d=>d.descricao===desc && d.categoria===cat && d.imovelId===imvId).length >= 12) break;
     }
   } else {
-    dados.despesas.push({ id: uid(), mes: baseMes, categoria: cat, descricao: desc, valor: valor });
+    dados.despesas.push({ id: uid(), imovelId: imvId, mes: baseMes, categoria: cat, descricao: desc, valor: valor });
   }
 
   document.getElementById('desp-descricao').value = '';
@@ -2225,21 +2687,28 @@ function renderDespesas() {
   const tbody = document.querySelector('#tabela-despesas tbody');
   const filtro = document.getElementById('filtro-mes-despesa').value;
   const filtroSel = document.getElementById('filtro-mes-despesa');
+  const despF = getDespesasFiltradas();
+  const mostraImovel = dados.filtroImovelId === 'todos' || dados.imoveis.length > 1;
   // popular filtros
-  const meses = [...new Set(dados.despesas.map(d => d.mes))].sort();
+  const meses = [...new Set(despF.map(d => d.mes))].sort();
   const valorAtual = filtroSel.value;
   filtroSel.innerHTML = '<option value="">Todos os meses</option>';
   meses.forEach(m => filtroSel.innerHTML += `<option value="${m}" ${m===valorAtual?'selected':''}>${nomeMes(m)}</option>`);
 
-  let lista = dados.despesas.slice().sort((a,b) => a.mes.localeCompare(b.mes));
+  let lista = despF.slice().sort((a,b) => a.mes.localeCompare(b.mes));
   if (filtro) lista = lista.filter(d => d.mes === filtro);
 
   tbody.innerHTML = '';
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhuma despesa neste filtro.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${mostraImovel ? 6 : 5}" class="empty-state">Nenhuma despesa neste filtro.</td></tr>`;
   } else {
     lista.forEach(d => {
+      const imv = dados.imoveis.find(i => i.id === d.imovelId);
+      const colImovel = mostraImovel
+        ? `<td>${imv ? `<span class="pill" style="background:${imv.cor||'#FF385C'}33; color:${imv.cor||'#FF385C'}">${imv.icone||'🏠'} ${imv.nome}</span>` : '—'}</td>`
+        : '';
       tbody.innerHTML += `<tr>
+        ${colImovel}
         <td>${nomeMes(d.mes)}</td><td><span class="pill pill-gray">${d.categoria}</span></td>
         <td>${d.descricao||'-'}</td><td>${fmt(d.valor)}</td>
         <td>
@@ -2294,33 +2763,32 @@ function calcularImpostoDoMes(bruto, regime, deducoes, aliquotaCustom) {
 }
 
 function calcularResumoMensal() {
-  const mesIni = dados.config.mesInicioOperacao || '2026-04';
+  const cfg = configEfetiva();
+  const mesIni = cfg.mesInicioOperacao || '2026-04';
+  const reservasF = getReservasFiltradas();
+  const despesasF = getDespesasFiltradas();
   const mesesSet = new Set();
-  dados.reservas.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
-  dados.despesas.forEach(d => { if (d.mes >= mesIni) mesesSet.add(d.mes); });
+  reservasF.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
+  despesasF.forEach(d => { if (d.mes >= mesIni) mesesSet.add(d.mes); });
 
   const meses = [...mesesSet].sort();
-  const regime = dados.config.regime || 'renda-alta';
-  const deducoes = dados.config.deducoes || 0;
-  const aliquotaCustom = dados.config.aliquotaCustom || 0;
+  const regime = cfg.regime || 'renda-alta';
+  const aliquotaCustom = cfg.aliquotaCustom || 0;
 
   return meses.map(m => {
-    const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
-    // separa "Parcela Apto" das outras despesas
-    const despesasMes = dados.despesas.filter(d => d.mes === m && d.categoria !== 'Parcela Apto');
-    const parcelaAptoMes = dados.despesas.filter(d => d.mes === m && d.categoria === 'Parcela Apto')
+    const reservasMes = reservasF.filter(r => r.inicio?.slice(0,7) === m);
+    const despesasMes = despesasF.filter(d => d.mes === m && d.categoria !== 'Parcela Apto');
+    const parcelaAptoMes = despesasF.filter(d => d.mes === m && d.categoria === 'Parcela Apto')
                                           .reduce((s,d) => s + d.valor, 0);
     const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
     const liquido = reservasMes.reduce((s,r) => s + r.liquido, 0);
-    const taxasAirbnb = bruto - liquido; // taxa cobrada pelo Airbnb
+    const taxasAirbnb = bruto - liquido;
     const totalDesp = despesasMes.reduce((s,d) => s + d.valor, 0);
-    const totalParc = parcelasInvestimentoNoMes(m); // CORRETO: só itens com parcelas ativas neste mês
+    const totalParc = parcelasInvestimentoNoMes(m);
 
-    // Despesas detalhadas por categoria
     const desp = {};
     despesasMes.forEach(d => { desp[d.categoria] = (desp[d.categoria]||0) + d.valor; });
 
-    // Imposto: aplicado sobre o bruto deduzido (usa dedução específica do mês — auto, override ou manual)
     const deducoesMes = getDeducaoMes(m);
     const imposto = calcularImpostoDoMes(bruto, regime, deducoesMes, aliquotaCustom);
 
@@ -2341,7 +2809,6 @@ function calcularResumoMensal() {
       resultadoPosImposto,
       lucroSemApto,
       lucroComApto,
-      // legados (compat)
       resultadoSemApto: lucroSemApto,
       resultadoComApto: lucroComApto
     };
@@ -2394,32 +2861,38 @@ function adicionarMesesAYM(ym, n) {
 }
 
 // Calcula a parcela ativa de UM item de investimento em um determinado mês (YYYY-MM)
-// Retorna 0 se já não tem mais parcelas, ou o valor mensal se ainda tem.
 function parcelaItemNoMes(item, ym) {
   const quandoCompra = parseQuandoCompra(item.quando);
-  // Se não tem "quando" definido, assume que começou no mês de início da operação
-  const compra = quandoCompra || dados.config.mesInicioOperacao || '2026-04';
-  // 1ª parcela = mês seguinte à compra
+  // Se não tem "quando" definido, busca o mês de início do imóvel do item
+  let mesIniDefault = '2026-04';
+  if (item.imovelId) {
+    const imv = dados.imoveis.find(i => i.id === item.imovelId);
+    if (imv && imv.mesInicioOperacao) mesIniDefault = imv.mesInicioOperacao;
+  }
+  const compra = quandoCompra || mesIniDefault;
   const primeiraParcela = adicionarMesesAYM(compra, 1);
-  // Última parcela = primeiraParcela + (parcelas - 1)
   const totalParcelas = item.parcelas || 1;
   const ultimaParcela = adicionarMesesAYM(primeiraParcela, totalParcelas - 1);
-  // Está ativo se ym >= primeiraParcela E ym <= ultimaParcela
   if (ym >= primeiraParcela && ym <= ultimaParcela) {
     return item.mensal || 0;
   }
   return 0;
 }
 
-// Soma das parcelas ativas de TODOS os itens em um mês
+// Soma das parcelas ativas dos itens FILTRADOS pelo imóvel atual em um mês
 function parcelasInvestimentoNoMes(ym) {
-  return dados.investimento.reduce((s, i) => s + parcelaItemNoMes(i, ym), 0);
+  return getInvestimentoFiltrado().reduce((s, i) => s + parcelaItemNoMes(i, ym), 0);
 }
 
 // Para cada item, retorna {ym, valorPago, valorRestante, parcelaAtual}
 function statusItemNoMes(item, ym) {
   const quandoCompra = parseQuandoCompra(item.quando);
-  const compra = quandoCompra || dados.config.mesInicioOperacao || '2026-04';
+  let mesIniDefault = '2026-04';
+  if (item.imovelId) {
+    const imv = dados.imoveis.find(i => i.id === item.imovelId);
+    if (imv && imv.mesInicioOperacao) mesIniDefault = imv.mesInicioOperacao;
+  }
+  const compra = quandoCompra || mesIniDefault;
   const primeiraParcela = adicionarMesesAYM(compra, 1);
   const totalParcelas = item.parcelas || 1;
   const mensal = item.mensal || 0;
@@ -2502,7 +2975,7 @@ function renderDre() {
 
   if (!meses.length) {
     thead.innerHTML = '';
-    tbody.innerHTML = '<tr><td class="empty-state">Sem dados a partir de ' + nomeMes(dados.config.mesInicioOperacao) + '.</td></tr>';
+    tbody.innerHTML = '<tr><td class="empty-state">Sem dados a partir de ' + nomeMes(configEfetiva().mesInicioOperacao) + '.</td></tr>';
     return;
   }
 
@@ -2592,10 +3065,11 @@ function renderDre() {
 
   // === IMPOSTOS ===
   html += `<tr class="dre-row-titulo"><td>(-) IMPOSTOS</td>${colunas.map(()=>'<td></td>').join('')}</tr>`;
-  const regime = dados.config.regime || 'renda-alta';
+  const cfgImp = configEfetiva();
+  const regime = cfgImp.regime || 'renda-alta';
   const labelImp = regime === 'renda-alta' ? 'IRPF (27,5% marginal)'
                   : regime === 'carne-leao' ? 'IRPF (Carnê-Leão + redutor)'
-                  : regime === 'custom' ? `IRPF (${dados.config.aliquotaCustom||0}%)`
+                  : regime === 'custom' ? `IRPF (${cfgImp.aliquotaCustom||0}%)`
                   : 'IRPF (isento)';
   html += `<tr class="dre-row-item dre-row-imposto"><td>${labelImp}</td>`;
   colunas.forEach(c => {
@@ -2664,12 +3138,15 @@ function renderResumoMensal() {
 
 // ==================== KPIs ====================
 function renderKPIs() {
-  const mesIni = dados.config.mesInicioOperacao || '2026-04';
-  const reservasOp = dados.reservas.filter(r => (r.inicio||'').slice(0,7) >= mesIni);
+  const cfg = configEfetiva();
+  const mesIni = cfg.mesInicioOperacao || '2026-04';
+  const reservasF = getReservasFiltradas();
+  const reservasOp = reservasF.filter(r => (r.inicio||'').slice(0,7) >= mesIni);
   const noitesTotal = reservasOp.reduce((s,r) => s + (r.noites||0), 0);
   const reservasCount = reservasOp.length;
-  const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
-  const parcMensal = dados.investimento.reduce((s,i) => s + i.mensal, 0);
+  const invF = getInvestimentoFiltrado();
+  const investTotal = invF.reduce((s,i) => s + i.valor, 0);
+  const parcMensal = invF.reduce((s,i) => s + i.mensal, 0);
 
   // === Decomposição: Pago vs Programado ===
   const reservasPagas = reservasOp.filter(r => r.status === 'pago');
@@ -2711,8 +3188,8 @@ function renderKPIs() {
   document.getElementById('kpi-receita-sub').textContent = `Bruta: ${fmt(receitaBrutaTotal)}`;
   document.getElementById('kpi-despesas').textContent = fmt(despesasTotal);
   document.getElementById('kpi-impostos').textContent = fmt(impostosTotal);
-  const regimeNome = (dados.config.regime||'renda-alta') === 'renda-alta' ? '27,5% marginal'
-                   : (dados.config.regime) === 'carne-leao' ? 'Carnê-Leão' : 'configurado';
+  const regimeNome = (cfg.regime||'renda-alta') === 'renda-alta' ? '27,5% marginal'
+                   : (cfg.regime) === 'carne-leao' ? 'Carnê-Leão' : 'configurado';
   document.getElementById('kpi-impostos-sub').textContent = regimeNome;
   document.getElementById('kpi-financiamento').textContent = fmt(financiamentoTotal);
 
@@ -2723,15 +3200,16 @@ function renderKPIs() {
   document.getElementById('kpi-noites-sub').textContent = `${noitesTotal} noites · Ticket: ${fmt(ticket)}`;
   document.getElementById('kpi-investimento').textContent = fmt(investTotal);
   const parcelaHojeKpi = parcelasInvestimentoNoMes(mesAtualYM());
-  document.getElementById('kpi-investimento-sub').textContent = `${dados.investimento.length} itens · ${fmt(parcelaHojeKpi)} este mês`;
+  document.getElementById('kpi-investimento-sub').textContent = `${getInvestimentoFiltrado().length} itens · ${fmt(parcelaHojeKpi)} este mês`;
 
   // KPIs detalhados da aba investimento são renderizados em renderCronograma()
 }
 
 // ==================== BREAKEVEN ====================
 function renderBreakeven() {
-  const mesIni = dados.config.mesInicioOperacao || '2026-04';
-  const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
+  const cfg = configEfetiva();
+  const mesIni = cfg.mesInicioOperacao || '2026-04';
+  const investTotal = getInvestimentoFiltrado().reduce((s,i) => s + i.valor, 0);
   const meses = calcularResumoMensal();
   const numMeses = meses.length;
   const receitaAcum = meses.reduce((s,m) => s + m.liquido, 0);
@@ -2828,35 +3306,29 @@ function diasNoMes(ym) {
 }
 
 function diasAlugadosNoMes(ym) {
-  // Conta noites das reservas que caem dentro do mês
+  // Conta noites das reservas FILTRADAS pelo imóvel atual
   const [a, m] = ym.split('-').map(Number);
   const inicioMes = new Date(a, m - 1, 1);
-  const fimMes = new Date(a, m, 0); // último dia
+  const fimMes = new Date(a, m, 0);
   let dias = 0;
-  dados.reservas.forEach(r => {
+  getReservasFiltradas().forEach(r => {
     if (!r.inicio || !r.fim) return;
     const [ia, im, id] = r.inicio.split('-').map(Number);
     const [fa, fm, fd] = r.fim.split('-').map(Number);
     const ini = new Date(ia, im - 1, id);
     const fim = new Date(fa, fm - 1, fd);
-    // sobreposição com o mês: [max(ini,inicioMes) ... min(fim,fimMes)]
     const overInicio = ini > inicioMes ? ini : inicioMes;
     const overFim = fim < fimMes ? fim : fimMes;
-    // diferença em dias (data fim é check-out, então não conta o dia da saída)
     const diff = Math.floor((overFim - overInicio) / (24 * 3600 * 1000));
     if (diff > 0) dias += diff;
-    // se a sobreposição é exatamente no último dia (entrada no fim do mês), conta 1 noite se ainda está alugado
-    else if (diff === 0 && overInicio.getDate() < overFim.getDate() + 1 && overInicio <= overFim) {
-      // edge case: ignoramos
-    }
   });
   return Math.min(dias, diasNoMes(ym));
 }
 
 function calcularDeducaoAutomatica(ym) {
-  // Soma despesas dedutíveis (Condomínio, IPTU, Manutenção) e aplica proporção dos dias alugados
+  // Soma despesas dedutíveis FILTRADAS e aplica proporção dos dias alugados
   const dedutiveis = ['Condomínio', 'IPTU', 'Manutenção'];
-  const totalDespDedutiveis = dados.despesas
+  const totalDespDedutiveis = getDespesasFiltradas()
     .filter(d => d.mes === ym && dedutiveis.includes(d.categoria))
     .reduce((s, d) => s + d.valor, 0);
   if (totalDespDedutiveis === 0) return 0;
@@ -2866,26 +3338,34 @@ function calcularDeducaoAutomatica(ym) {
   return totalDespDedutiveis * proporcao;
 }
 
+function getImpostosMesRef() {
+  // Retorna o objeto de impostosMes do imóvel atual (ou primeiro se "todos")
+  const cfg = configEfetiva();
+  if (!cfg.impostosMes) cfg.impostosMes = {};
+  return cfg.impostosMes;
+}
+
 function getDeducaoMes(ym) {
-  // Retorna o valor de dedução considerando: override manual > automático/manual padrão
-  if (!dados.impostosMes) dados.impostosMes = {};
-  const reg = dados.impostosMes[ym];
+  const cfg = configEfetiva();
+  const impMes = cfg.impostosMes || {};
+  const reg = impMes[ym];
   if (reg && typeof reg.deducaoOverride === 'number') {
     return reg.deducaoOverride;
   }
-  if (dados.config.deducoesAuto) {
+  if (cfg.deducoesAuto) {
     return calcularDeducaoAutomatica(ym);
   }
-  return dados.config.deducoes || 0;
+  return cfg.deducoes || 0;
 }
 
 function setDeducaoOverride(ym, valor) {
-  if (!dados.impostosMes) dados.impostosMes = {};
-  if (!dados.impostosMes[ym]) dados.impostosMes[ym] = {};
+  const cfg = configEfetiva();
+  if (!cfg.impostosMes) cfg.impostosMes = {};
+  if (!cfg.impostosMes[ym]) cfg.impostosMes[ym] = {};
   if (valor === null || valor === undefined || isNaN(valor)) {
-    delete dados.impostosMes[ym].deducaoOverride;
+    delete cfg.impostosMes[ym].deducaoOverride;
   } else {
-    dados.impostosMes[ym].deducaoOverride = valor;
+    cfg.impostosMes[ym].deducaoOverride = valor;
   }
   salvarDados();
   renderImpostos();
@@ -2895,14 +3375,15 @@ function setDeducaoOverride(ym, valor) {
 }
 
 function togglePagoImposto(ym) {
-  if (!dados.impostosMes) dados.impostosMes = {};
-  if (!dados.impostosMes[ym]) dados.impostosMes[ym] = {};
-  const atual = !!dados.impostosMes[ym].pago;
-  dados.impostosMes[ym].pago = !atual;
+  const cfg = configEfetiva();
+  if (!cfg.impostosMes) cfg.impostosMes = {};
+  if (!cfg.impostosMes[ym]) cfg.impostosMes[ym] = {};
+  const atual = !!cfg.impostosMes[ym].pago;
+  cfg.impostosMes[ym].pago = !atual;
   if (!atual) {
-    dados.impostosMes[ym].dataPagamento = new Date().toISOString().slice(0, 10);
+    cfg.impostosMes[ym].dataPagamento = new Date().toISOString().slice(0, 10);
   } else {
-    delete dados.impostosMes[ym].dataPagamento;
+    delete cfg.impostosMes[ym].dataPagamento;
   }
   salvarDados();
   renderImpostos();
@@ -2926,18 +3407,24 @@ function editarDeducaoMes(ym, valorAtual) {
 }
 
 function atualizarImpostos() {
+  const cfg = configEfetiva();
+  // Não permitir edição quando "Todos" — config é do imóvel específico
+  if (dados.filtroImovelId === 'todos') {
+    alert('Selecione um imóvel específico no topo para alterar as configurações tributárias. No modo "Todos" só é possível visualizar.');
+    // restaurar UI
+    document.getElementById('regime-tributario').value = cfg.regime;
+    return;
+  }
   const regime = document.getElementById('regime-tributario').value;
-  dados.config.regime = regime;
+  cfg.regime = regime;
   document.getElementById('campo-aliquota-custom').style.display = regime === 'custom' ? 'block' : 'none';
-  dados.config.aliquotaCustom = parseFloat(document.getElementById('aliquota-custom').value) || 0;
-  dados.config.deducoes = parseFloat(document.getElementById('deducoes').value) || 0;
+  cfg.aliquotaCustom = parseFloat(document.getElementById('aliquota-custom').value) || 0;
+  cfg.deducoes = parseFloat(document.getElementById('deducoes').value) || 0;
   const autoEl = document.getElementById('deducoes-auto');
-  if (autoEl) dados.config.deducoesAuto = autoEl.checked;
-  // mostrar/esconder campo manual
+  if (autoEl) cfg.deducoesAuto = autoEl.checked;
   const manualArea = document.getElementById('deducoes-manual-area');
-  if (manualArea) manualArea.style.opacity = dados.config.deducoesAuto ? '0.5' : '1';
+  if (manualArea) manualArea.style.opacity = cfg.deducoesAuto ? '0.5' : '1';
   salvarDados();
-  // re-renderiza tudo que depende das deduções (DRE, KPIs, gráficos)
   renderImpostos();
   renderDre();
   renderKPIs();
@@ -2946,14 +3433,15 @@ function atualizarImpostos() {
 }
 
 function renderImpostos() {
-  const mesIni = dados.config.mesInicioOperacao || '2026-04';
-  const regime = dados.config.regime || 'renda-alta';
-  const aliquotaCustom = dados.config.aliquotaCustom || 0;
+  const cfg = configEfetiva();
+  const mesIni = cfg.mesInicioOperacao || '2026-04';
+  const regime = cfg.regime || 'renda-alta';
+  const aliquotaCustom = cfg.aliquotaCustom || 0;
+  if (!cfg.impostosMes) cfg.impostosMes = {};
 
-  if (!dados.impostosMes) dados.impostosMes = {};
-
+  const reservasF = getReservasFiltradas();
   const mesesSet = new Set();
-  dados.reservas.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
+  reservasF.forEach(r => { const m = r.inicio?.slice(0,7); if (m && m >= mesIni) mesesSet.add(m); });
   const meses = [...mesesSet].sort();
 
   let totalBruto = 0, totalImposto = 0, totalPago = 0;
@@ -2971,7 +3459,7 @@ function renderImpostos() {
   }
 
   meses.forEach(m => {
-    const reservasMes = dados.reservas.filter(r => r.inicio?.slice(0,7) === m);
+    const reservasMes = reservasF.filter(r => r.inicio?.slice(0,7) === m);
     const bruto = reservasMes.reduce((s,r) => s + r.bruto, 0);
     const deducoesMes = getDeducaoMes(m);
     const base = Math.max(0, bruto - deducoesMes);
@@ -2997,22 +3485,19 @@ function renderImpostos() {
     totalBruto += bruto;
     totalImposto += imposto;
 
-    // Status (pago / não pago)
-    const reg = dados.impostosMes[m] || {};
+    const reg = cfg.impostosMes[m] || {};
     const pago = !!reg.pago;
     if (pago) totalPago += imposto;
 
-    // Indicador de origem da dedução (auto/override/manual)
     const isOverride = typeof reg.deducaoOverride === 'number';
-    const labelDeducao = isOverride ? '✏️ manual' : (dados.config.deducoesAuto ? '🤖 auto' : '📋 padrão');
+    const labelDeducao = isOverride ? '✏️ manual' : (cfg.deducoesAuto ? '🤖 auto' : '📋 padrão');
 
-    // Detalhe automático (dias alugados)
     let tooltipDeducao = '';
-    if (dados.config.deducoesAuto && !isOverride) {
+    if (cfg.deducoesAuto && !isOverride) {
       const diasMes = diasNoMes(m);
       const diasAlug = diasAlugadosNoMes(m);
       const dedutiveis = ['Condomínio', 'IPTU', 'Manutenção'];
-      const totalDed = dados.despesas
+      const totalDed = getDespesasFiltradas()
         .filter(d => d.mes === m && dedutiveis.includes(d.categoria))
         .reduce((s, d) => s + d.valor, 0);
       tooltipDeducao = `title="${diasAlug}/${diasMes} dias alugados (${(diasAlug/diasMes*100).toFixed(0)}%) sobre R$ ${totalDed.toFixed(2)} de despesas dedutíveis"`;
@@ -3047,9 +3532,8 @@ function renderImpostos() {
                     : 'isento';
   document.getElementById('imp-aliquota-info').textContent = 'Regime: ' + regimeLabel;
 
-  // Atualizar opacidade da área de dedução manual
   const manualArea = document.getElementById('deducoes-manual-area');
-  if (manualArea) manualArea.style.opacity = dados.config.deducoesAuto ? '0.5' : '1';
+  if (manualArea) manualArea.style.opacity = cfg.deducoesAuto ? '0.5' : '1';
 }
 
 // ==================== CHARTS ====================
@@ -3090,9 +3574,10 @@ function renderCharts() {
   const ctx2 = document.getElementById('chartDespesas');
   if (ctx2) {
     if (charts.desp) charts.desp.destroy();
-    const mesIni = dados.config.mesInicioOperacao || '2026-04';
+    const cfg = configEfetiva();
+    const mesIni = cfg.mesInicioOperacao || '2026-04';
     const grupos = {};
-    dados.despesas.filter(d => d.mes >= mesIni && d.categoria !== 'Parcela Apto').forEach(d => {
+    getDespesasFiltradas().filter(d => d.mes >= mesIni && d.categoria !== 'Parcela Apto').forEach(d => {
       grupos[d.categoria] = (grupos[d.categoria] || 0) + d.valor;
     });
     const parcInvest = meses.reduce((s,m) => s + m.parcelas, 0);
@@ -3167,7 +3652,7 @@ function renderCharts() {
   const ctx3 = document.getElementById('chartBreakeven');
   if (ctx3) {
     if (charts.be) charts.be.destroy();
-    const investTotal = dados.investimento.reduce((s,i) => s + i.valor, 0);
+    const investTotal = getInvestimentoFiltrado().reduce((s,i) => s + i.valor, 0);
 
     const labels = meses.map(m => nomeMes(m.mes));
     let acumReceita = 0;
@@ -3631,16 +4116,30 @@ function carregarDadosExemplo() {
 
 // ==================== INIT ====================
 function renderTudo() {
-  // popular config UI
-  document.getElementById('parcela-apto').value = dados.config.parcelaApto || '';
-  document.getElementById('parcela-apto-config').value = dados.config.parcelaApto || '';
-  document.getElementById('mes-inicio-operacao').value = dados.config.mesInicioOperacao || '2026-04';
-  document.getElementById('regime-tributario').value = dados.config.regime || 'renda-alta';
-  document.getElementById('aliquota-custom').value = dados.config.aliquotaCustom || 15;
-  document.getElementById('deducoes').value = dados.config.deducoes || 0;
-  document.getElementById('campo-aliquota-custom').style.display = dados.config.regime === 'custom' ? 'block' : 'none';
+  const cfg = configEfetiva();
+  // popular config UI a partir do imóvel atual (ou primeiro se "todos")
+  const parcEl = document.getElementById('parcela-apto');
+  const parcCfgEl = document.getElementById('parcela-apto-config');
+  if (parcEl) parcEl.value = cfg.parcelaApto || '';
+  if (parcCfgEl) parcCfgEl.value = cfg.parcelaApto || '';
+  const mesIniEl = document.getElementById('mes-inicio-operacao');
+  if (mesIniEl) mesIniEl.value = cfg.mesInicioOperacao || '2026-04';
+  const regEl = document.getElementById('regime-tributario');
+  if (regEl) regEl.value = cfg.regime || 'renda-alta';
+  const aliqEl = document.getElementById('aliquota-custom');
+  if (aliqEl) aliqEl.value = cfg.aliquotaCustom || 15;
+  const dedEl = document.getElementById('deducoes');
+  if (dedEl) dedEl.value = cfg.deducoes || 0;
+  const campoAlq = document.getElementById('campo-aliquota-custom');
+  if (campoAlq) campoAlq.style.display = cfg.regime === 'custom' ? 'block' : 'none';
   const autoEl = document.getElementById('deducoes-auto');
-  if (autoEl) autoEl.checked = dados.config.deducoesAuto !== false;
+  if (autoEl) autoEl.checked = cfg.deducoesAuto !== false;
+
+  // Seletores e header (multi-imóveis)
+  renderSeletorImoveis();
+  renderSeletorAnos();
+  atualizarHeader();
+  renderImoveis();
 
   renderReservas();
   renderInvestimento();
