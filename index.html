@@ -246,6 +246,59 @@
     font-size: 12px;
   }
   .reset-btn:hover { background: rgba(255,255,255,0.3); }
+
+  /* Modal de edição */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); display: none;
+    align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+    animation: fadeIn 0.2s;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white; border-radius: 14px;
+    padding: 24px; max-width: 520px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 {
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 16px; color: #222;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .modal-fields {
+    display: grid; gap: 12px; margin-bottom: 20px;
+  }
+  .modal-field label {
+    display: block; font-size: 12px; font-weight: 500;
+    color: #666; margin-bottom: 4px;
+  }
+  .modal-field input, .modal-field select {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #ddd; border-radius: 8px;
+    font-size: 14px;
+  }
+  .modal-field input:focus, .modal-field select:focus {
+    outline: none; border-color: #FF385C;
+    box-shadow: 0 0 0 3px rgba(255,56,92,0.1);
+  }
+  .modal-row {
+    display: grid; gap: 10px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .modal-actions {
+    display: flex; gap: 8px;
+    justify-content: flex-end; padding-top: 16px;
+    border-top: 1px solid #eee;
+  }
+  .btn-edit {
+    background: transparent; color: #0073E6;
+    border: none; padding: 4px 8px; cursor: pointer;
+    font-size: 14px; border-radius: 4px;
+  }
+  .btn-edit:hover { background: #DBEAFE; }
+
   @media (max-width: 700px) {
     .container { padding: 12px; }
     .header { padding: 16px 20px; }
@@ -1394,7 +1447,10 @@ function renderReservas() {
         <td>${hospedeDisplay}</td>
         <td>${fmt(r.bruto)}</td><td>${fmt(r.taxa)}</td><td>${fmt(r.limpeza)}</td><td><strong>${fmt(r.liquido)}</strong></td>
         <td><span class="pill ${pill}" style="cursor:pointer" onclick="toggleStatusReserva('${r.id}')" title="Clique para alternar status">${pillTxt}</span></td>
-        <td><button class="btn btn-danger btn-sm" onclick="removerReserva('${r.id}')">×</button></td>
+        <td>
+          <button class="btn-edit" onclick="editarReserva('${r.id}')" title="Editar">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="removerReserva('${r.id}')" title="Remover">×</button>
+        </td>
       </tr>`;
     });
   }
@@ -1610,6 +1666,205 @@ function removerInvestimento(id) {
   renderTudo();
 }
 
+// ==================== MODAL DE EDIÇÃO GENÉRICO ====================
+let modalContexto = null; // { tipo: 'investimento'|'despesa', id, campos }
+
+function fecharModal() {
+  document.getElementById('modalEdicao').classList.remove('active');
+  modalContexto = null;
+}
+
+function abrirModalEdicao(titulo, campos, onSalvar) {
+  modalContexto = { campos, onSalvar };
+  document.getElementById('modalTitulo').innerHTML = titulo;
+
+  const html = campos.map(c => {
+    if (c.tipo === 'select') {
+      const opts = c.opcoes.map(o => `<option value="${o.valor}" ${o.valor === c.valor ? 'selected' : ''}>${o.label}</option>`).join('');
+      return `<div class="modal-field">
+        <label>${c.label}</label>
+        <select id="modal-${c.id}">${opts}</select>
+      </div>`;
+    }
+    if (c.tipo === 'row') {
+      return `<div class="modal-row">
+        ${c.campos.map(s => `<div class="modal-field">
+          <label>${s.label}</label>
+          <input type="${s.tipo || 'text'}" id="modal-${s.id}" value="${s.valor != null ? s.valor : ''}" ${s.step ? `step="${s.step}"` : ''} ${s.min ? `min="${s.min}"` : ''} ${s.placeholder ? `placeholder="${s.placeholder}"` : ''}>
+        </div>`).join('')}
+      </div>`;
+    }
+    return `<div class="modal-field">
+      <label>${c.label}</label>
+      <input type="${c.tipo || 'text'}" id="modal-${c.id}" value="${c.valor != null ? c.valor : ''}" ${c.step ? `step="${c.step}"` : ''} ${c.min ? `min="${c.min}"` : ''} ${c.placeholder ? `placeholder="${c.placeholder}"` : ''}>
+    </div>`;
+  }).join('');
+
+  document.getElementById('modalCampos').innerHTML = html;
+  document.getElementById('modalEdicao').classList.add('active');
+
+  // Focar primeiro campo
+  setTimeout(() => {
+    const primeiro = document.querySelector('#modalCampos input, #modalCampos select');
+    if (primeiro) primeiro.focus();
+  }, 50);
+}
+
+function salvarEdicao() {
+  if (!modalContexto) return;
+  const valores = {};
+  // recursivamente coletar valores de campos e linhas
+  function coletar(campos) {
+    campos.forEach(c => {
+      if (c.tipo === 'row') {
+        coletar(c.campos);
+      } else {
+        const el = document.getElementById('modal-' + c.id);
+        if (el) valores[c.id] = el.value;
+      }
+    });
+  }
+  coletar(modalContexto.campos);
+  const ok = modalContexto.onSalvar(valores);
+  if (ok !== false) fecharModal();
+}
+
+// === Editar Investimento ===
+function editarInvestimento(id) {
+  const item = dados.investimento.find(i => i.id === id);
+  if (!item) return;
+
+  abrirModalEdicao(
+    `🔨 Editar Item de Investimento`,
+    [
+      { tipo: 'row', campos: [
+        { id: 'onde', label: 'Onde (loja)', valor: item.onde, placeholder: 'Loja' },
+        { id: 'quando', label: 'Quando (mês compra)', valor: item.quando, placeholder: 'fev/2026' }
+      ]},
+      { id: 'oque', label: 'O que?', valor: item.oque, placeholder: 'Item' },
+      { tipo: 'row', campos: [
+        { id: 'valor', label: 'Valor total (R$)', valor: item.valor, tipo: 'number', step: '0.01', min: '0' },
+        { id: 'parcelas', label: 'Parcelas', valor: item.parcelas, tipo: 'number', min: '1' }
+      ]},
+      { tipo: 'row', campos: [
+        { id: 'mensal', label: 'Mensal (R$) — calculado', valor: item.mensal, tipo: 'number', step: '0.01' },
+        { id: 'pgto', label: 'Forma de pagamento', valor: item.pgto, placeholder: 'C6, BTG, Pix...' }
+      ]}
+    ],
+    (v) => {
+      const valor = parseFloat(v.valor) || 0;
+      const parcelas = parseInt(v.parcelas) || 1;
+      let mensal = parseFloat(v.mensal) || 0;
+      // se a pessoa não mexeu no mensal, recalcula automaticamente
+      if (Math.abs(mensal - item.mensal) < 0.001) {
+        mensal = +(valor / parcelas).toFixed(2);
+      }
+      item.onde = v.onde || '';
+      item.quando = v.quando || '';
+      item.oque = v.oque || '';
+      item.valor = valor;
+      item.parcelas = parcelas;
+      item.mensal = mensal;
+      item.pgto = v.pgto || '';
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+// === Editar Despesa ===
+function editarDespesa(id) {
+  const d = dados.despesas.find(x => x.id === id);
+  if (!d) return;
+
+  const categorias = ['Parcela Apto', 'Condomínio', 'Energia', 'Internet', 'IPTU', 'Água', 'Limpeza', 'Manutenção', 'Outros'];
+  const opcoes = categorias.map(c => ({ valor: c, label: c }));
+
+  abrirModalEdicao(
+    `📉 Editar Despesa`,
+    [
+      { tipo: 'row', campos: [
+        { id: 'mes', label: 'Mês (YYYY-MM)', valor: d.mes, placeholder: '2026-04' },
+        { id: 'categoria', label: 'Categoria', valor: d.categoria, tipo: 'select', opcoes }
+      ]},
+      { id: 'descricao', label: 'Descrição', valor: d.descricao || '', placeholder: 'Detalhe (opcional)' },
+      { id: 'valor', label: 'Valor (R$)', valor: d.valor, tipo: 'number', step: '0.01', min: '0' }
+    ],
+    (v) => {
+      const mesNorm = normalizarMes(v.mes);
+      if (!mesNorm || !/^\d{4}-\d{2}$/.test(mesNorm)) {
+        alert('Formato de mês inválido. Use YYYY-MM (ex: 2026-04) ou MM/AAAA.');
+        return false;
+      }
+      const valor = parseFloat(v.valor);
+      if (isNaN(valor) || valor < 0) {
+        alert('Valor inválido.');
+        return false;
+      }
+      d.mes = mesNorm;
+      d.categoria = v.categoria;
+      d.descricao = v.descricao || '';
+      d.valor = valor;
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+// === Editar Reserva ===
+function editarReserva(id) {
+  const r = dados.reservas.find(x => x.id === id);
+  if (!r) return;
+
+  abrirModalEdicao(
+    `💰 Editar Reserva`,
+    [
+      { tipo: 'row', campos: [
+        { id: 'inicio', label: 'Data início', valor: r.inicio, tipo: 'date' },
+        { id: 'fim', label: 'Data fim', valor: r.fim, tipo: 'date' }
+      ]},
+      { tipo: 'row', campos: [
+        { id: 'noites', label: 'Noites', valor: r.noites, tipo: 'number', min: '1' },
+        { id: 'status', label: 'Status', valor: r.status, tipo: 'select', opcoes: [
+          { valor: 'pago', label: 'Pago' },
+          { valor: 'pendente', label: 'Pendente' }
+        ]}
+      ]},
+      { id: 'hospede', label: 'Hóspede', valor: r.hospede || '', placeholder: 'Nome do hóspede' },
+      { tipo: 'row', campos: [
+        { id: 'bruto', label: 'Ganhos brutos (R$)', valor: r.bruto, tipo: 'number', step: '0.01', min: '0' },
+        { id: 'taxa', label: 'Taxa serviço (R$)', valor: r.taxa, tipo: 'number', step: '0.01', min: '0' }
+      ]},
+      { tipo: 'row', campos: [
+        { id: 'limpeza', label: 'Limpeza (R$)', valor: r.limpeza, tipo: 'number', step: '0.01', min: '0' },
+        { id: 'liquido', label: 'Líquido pago (R$)', valor: r.liquido, tipo: 'number', step: '0.01', min: '0' }
+      ]},
+      { id: 'codigo', label: 'Código de confirmação (opcional)', valor: r.codigo || '', placeholder: 'HMQWSWS3EC' }
+    ],
+    (v) => {
+      r.inicio = v.inicio;
+      r.fim = v.fim;
+      r.noites = parseInt(v.noites) || 1;
+      r.status = v.status;
+      r.hospede = v.hospede || '';
+      r.bruto = parseFloat(v.bruto) || 0;
+      r.taxa = parseFloat(v.taxa) || 0;
+      r.limpeza = parseFloat(v.limpeza) || 0;
+      r.liquido = parseFloat(v.liquido) || 0;
+      if (v.codigo) r.codigo = v.codigo;
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+// Fechar modal com ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('modalEdicao').classList.contains('active')) {
+    fecharModal();
+  }
+});
+
 function mesAtualYM() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -1713,7 +1968,10 @@ function renderInvestimento() {
       <td>${fmt(i.valor)}</td><td>${i.parcelas}x</td><td>${fmt(i.mensal)}</td>
       <td><span class="pill ${pillClass}">${pillTxt}</span></td>
       <td>${i.pgto||'-'}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="removerInvestimento('${i.id}')">×</button></td>
+      <td>
+        <button class="btn-edit" onclick="editarInvestimento('${i.id}')" title="Editar">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="removerInvestimento('${i.id}')" title="Remover">×</button>
+      </td>
     </tr>`;
   });
 }
@@ -1984,7 +2242,10 @@ function renderDespesas() {
       tbody.innerHTML += `<tr>
         <td>${nomeMes(d.mes)}</td><td><span class="pill pill-gray">${d.categoria}</span></td>
         <td>${d.descricao||'-'}</td><td>${fmt(d.valor)}</td>
-        <td><button class="btn btn-danger btn-sm" onclick="removerDespesa('${d.id}')">×</button></td>
+        <td>
+          <button class="btn-edit" onclick="editarDespesa('${d.id}')" title="Editar">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="removerDespesa('${d.id}')" title="Remover">×</button>
+        </td>
       </tr>`;
     });
   }
@@ -3430,6 +3691,18 @@ function copiarBinId() {
   }
 })();
 </script>
+
+<!-- Modal genérico de edição -->
+<div class="modal-overlay" id="modalEdicao" onclick="if(event.target===this) fecharModal()">
+  <div class="modal">
+    <h2 id="modalTitulo">✏️ Editar</h2>
+    <div class="modal-fields" id="modalCampos"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicao()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
