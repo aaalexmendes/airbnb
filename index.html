@@ -1190,8 +1190,54 @@ function fmt(v) {
 }
 function parseBR(v) {
   if (typeof v === 'number') return v;
-  if (!v) return 0;
-  return parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+  if (v === null || v === undefined) return 0;
+  let s = String(v).trim();
+  if (!s) return 0;
+  // Remove tudo que não é dígito, vírgula, ponto ou sinal de menos
+  s = s.replace(/[^\d,.-]/g, '');
+  if (!s) return 0;
+
+  const temPonto = s.includes('.');
+  const temVirgula = s.includes(',');
+
+  if (temPonto && temVirgula) {
+    // Formato com ambos: o ÚLTIMO separador é o decimal
+    // Ex: "1.234,56" (BR) ou "1,234.56" (US)
+    const ultPonto = s.lastIndexOf('.');
+    const ultVirgula = s.lastIndexOf(',');
+    if (ultVirgula > ultPonto) {
+      // BR: ponto = milhar, vírgula = decimal
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // US: vírgula = milhar, ponto = decimal
+      s = s.replace(/,/g, '');
+    }
+  } else if (temVirgula) {
+    // Só vírgula → assume decimal (BR): "23,53" → 23.53
+    // Mas se tem múltiplas vírgulas, é separador de milhar US: "1,234" → 1234
+    const partes = s.split(',');
+    if (partes.length > 2) {
+      // várias vírgulas = separador de milhar
+      s = s.replace(/,/g, '');
+    } else {
+      // uma vírgula só = decimal BR
+      s = s.replace(',', '.');
+    }
+  } else if (temPonto) {
+    // Só ponto: pode ser decimal US ("120.00") OU milhar BR ("1.234")
+    // Heurística: se tem exatamente UM ponto e os dígitos depois são 1-2, é decimal
+    // Ex: "120.00" (decimal), "1.234" (milhar BR), "1.234.567" (milhar BR)
+    const partes = s.split('.');
+    if (partes.length === 2 && partes[1].length <= 2) {
+      // É decimal: "120.00", "23.5"
+      // mantém como está
+    } else {
+      // Múltiplos pontos OU dígitos após o ponto > 2 = separador de milhar BR
+      s = s.replace(/\./g, '');
+    }
+  }
+
+  return parseFloat(s) || 0;
 }
 function mesDeData(d) {
   if (!d) return '';
