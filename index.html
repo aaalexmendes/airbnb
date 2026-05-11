@@ -339,6 +339,7 @@
   <div class="tabs">
     <button class="tab active" onclick="showTab('visao-geral', this)">📊 Visão Geral</button>
     <button class="tab" onclick="showTab('dre', this)">📋 DRE</button>
+    <button class="tab" onclick="showTab('estatisticas', this)">📈 Estatísticas</button>
     <button class="tab" onclick="showTab('receitas', this)">💰 Receitas</button>
     <button class="tab" onclick="showTab('investimento', this)">🔨 Investimento Inicial</button>
     <button class="tab" onclick="showTab('despesas', this)">📉 Despesas Mensais</button>
@@ -527,6 +528,154 @@
       </p>
       <div class="chart-container" style="height:360px"><canvas id="chartProporcao"></canvas></div>
     </div>
+  </div>
+
+  <!-- =================== ESTATÍSTICAS =================== -->
+  <div id="estatisticas" class="content">
+
+    <!-- KPIs principais de operação -->
+    <div class="grid grid-4">
+      <div class="card" style="border-left:4px solid #00A878">
+        <h3>Diária Média</h3>
+        <div class="value" id="est-diaria" style="color:#00A878">R$ 0,00</div>
+        <div class="sub" id="est-diaria-sub">Bruto ÷ noites</div>
+      </div>
+      <div class="card" style="border-left:4px solid #0073E6">
+        <h3>Estadia Média</h3>
+        <div class="value" id="est-estadia" style="color:#0073E6">0 noites</div>
+        <div class="sub">Por reserva</div>
+      </div>
+      <div class="card" style="border-left:4px solid #FF8800">
+        <h3>Taxa de Ocupação</h3>
+        <div class="value" id="est-ocupacao" style="color:#FF8800">0%</div>
+        <div class="sub" id="est-ocupacao-sub">Desde início da operação</div>
+      </div>
+      <div class="card" style="border-left:4px solid #7B61FF">
+        <h3>Lead Time Médio</h3>
+        <div class="value" id="est-leadtime" style="color:#7B61FF">— dias</div>
+        <div class="sub">Antecedência reserva</div>
+      </div>
+    </div>
+
+    <div class="grid grid-4" style="margin-top:16px">
+      <div class="card">
+        <h3>Maior Reserva</h3>
+        <div class="value" id="est-maior-reserva">R$ 0,00</div>
+        <div class="sub" id="est-maior-reserva-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Reserva Mais Longa</h3>
+        <div class="value" id="est-mais-longa">0 noites</div>
+        <div class="sub" id="est-mais-longa-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Ticket Médio</h3>
+        <div class="value" id="est-ticket">R$ 0,00</div>
+        <div class="sub">Por reserva (líquido)</div>
+      </div>
+      <div class="card">
+        <h3>Total Noites</h3>
+        <div class="value" id="est-total-noites">0</div>
+        <div class="sub" id="est-total-noites-sub">Em 0 reservas</div>
+      </div>
+    </div>
+
+    <!-- Análise temporal: dia da semana -->
+    <div class="grid grid-2" style="margin-top:24px">
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">📅 Reservas por Dia da Semana</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:12px">
+          Conta o dia de <strong>check-in</strong> de cada reserva.
+        </p>
+        <div class="chart-container" style="height:300px"><canvas id="chartDiaSemana"></canvas></div>
+        <div id="dia-semana-insight" style="margin-top:10px; padding:10px; background:#F0F8FF; border-radius:6px; font-size:13px; color:#222"></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">💰 Receita por Dia da Semana</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:12px">
+          Receita líquida total atribuída ao dia de check-in.
+        </p>
+        <div class="chart-container" style="height:300px"><canvas id="chartReceitaDia"></canvas></div>
+        <div id="receita-dia-insight" style="margin-top:10px; padding:10px; background:#F0F8FF; border-radius:6px; font-size:13px; color:#222"></div>
+      </div>
+    </div>
+
+    <!-- Análise temporal: meses -->
+    <div class="card" style="margin-top:24px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">📆 Ranking Mensal — Quantidade e Receita</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Os meses ordenados por receita (mais cheios em cima). Permite identificar sazonalidade.
+      </p>
+      <div style="overflow-x:auto">
+        <table id="tabela-ranking-meses">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Reservas</th>
+              <th>Noites</th>
+              <th>Ocupação</th>
+              <th>Receita Bruta</th>
+              <th>Receita Líquida</th>
+              <th>Diária Média</th>
+              <th>Ticket Médio</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Distribuição da duração das estadias -->
+    <div class="grid grid-2" style="margin-top:24px">
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🛏️ Distribuição da Duração das Estadias</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:12px">
+          Quantas reservas de 1 noite, 2 noites, etc.
+        </p>
+        <div class="chart-container" style="height:280px"><canvas id="chartDuracao"></canvas></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">⏱️ Lead Time — Antecedência das Reservas</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:12px">
+          Quantos dias antes do check-in a reserva foi feita (quando disponível).
+        </p>
+        <div class="chart-container" style="height:280px"><canvas id="chartLeadtime"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Top hóspedes -->
+    <div class="card" style="margin-top:24px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">👥 Top Hóspedes</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Hóspedes que mais geraram receita. Identifica padrões de recorrência e oportunidades de fidelização.
+      </p>
+      <div style="overflow-x:auto">
+        <table id="tabela-top-hospedes">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Hóspede</th>
+              <th>Reservas</th>
+              <th>Total Noites</th>
+              <th>Receita Bruta</th>
+              <th>Receita Líquida</th>
+              <th>Última estadia</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Heatmap de calendário -->
+    <div class="card" style="margin-top:24px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🌡️ Mapa de Calor — Ocupação Mensal</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Quanto mais escuro, mais noites alugadas naquele mês. Ajuda a ver padrões sazonais.
+      </p>
+      <div id="heatmap-ocupacao" style="display:flex; flex-direction:column; gap:4px"></div>
+    </div>
+
   </div>
 
   <!-- =================== RECEITAS =================== -->
@@ -1806,6 +1955,7 @@ function showTab(id, btn) {
     renderCharts();
     if (id === 'dre') renderDreCharts();
     if (id === 'investimento') renderCronograma();
+    if (id === 'estatisticas') renderEstatisticas();
   }, 50);
 }
 
@@ -1931,6 +2081,7 @@ function importarCSV(ev) {
 
       const iTipo = idx('tipo');
       const iCodigo = idx('código de confirmação');
+      const iDataReserva = idx('data da reserva');
       const iInicio = idx('data de início');
       const iFim = idx('data de término');
       const iNoites = idx('noites');
@@ -1966,6 +2117,7 @@ function importarCSV(ev) {
         if (!tipo.includes('reserva')) continue;
 
         const codigo = iCodigo >= 0 ? (c[iCodigo]||'').trim() : '';
+        const dataReservaConv = iDataReserva >= 0 ? converterData(c[iDataReserva]) : null;
         const inicioConv = converterData(c[iInicio]);
         const fimConv = converterData(c[iFim]);
         const noites = parseInt(c[iNoites]) || 0;
@@ -2003,6 +2155,7 @@ function importarCSV(ev) {
           // Atualizar reserva existente
           let mudou = false;
           if (codigo && !existente.codigo) { existente.codigo = codigo; mudou = true; }
+          if (dataReservaConv && !existente.dataReserva) { existente.dataReserva = dataReservaConv; mudou = true; }
           if (existente.status !== statusNovo) { existente.status = statusNovo; mudou = true; }
           if (Math.abs((existente.bruto||0) - bruto) > 0.01) { existente.bruto = bruto; mudou = true; }
           if (Math.abs((existente.taxa||0) - taxa) > 0.01) { existente.taxa = taxa; mudou = true; }
@@ -2021,6 +2174,7 @@ function importarCSV(ev) {
             id: uid(),
             imovelId: imovelDestino,
             codigo: codigo || undefined,
+            dataReserva: dataReservaConv || undefined,
             inicio: inicioConv,
             fim: fimConv,
             noites,
@@ -4027,6 +4181,404 @@ function removerDuplicatas() {
   div.innerHTML = `<div class="alert alert-success">✅ ${duplicadas.length} duplicata(s) removida(s). Restaram ${manter.length} reserva(s).</div>`;
 }
 
+// ==================== ESTATÍSTICAS ====================
+function parseData(dataStr) {
+  // YYYY-MM-DD ou MM/DD/YYYY
+  if (!dataStr) return null;
+  const [a, m, d] = dataStr.split('-').map(Number);
+  if (isNaN(a) || isNaN(m) || isNaN(d)) return null;
+  return new Date(a, m - 1, d);
+}
+
+function diasEntreDatas(d1, d2) {
+  return Math.floor((d2 - d1) / (24 * 3600 * 1000));
+}
+
+function nomesDiasSemana() {
+  return ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+}
+
+function nomesDiasSemanaCurtos() {
+  return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+}
+
+function nomesMesesCurtos() {
+  return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+}
+
+function renderEstatisticas() {
+  const reservas = getReservasFiltradas();
+  if (!reservas.length) {
+    // Limpar tudo
+    const limpar = ['est-diaria', 'est-estadia', 'est-ocupacao', 'est-leadtime',
+                    'est-maior-reserva', 'est-mais-longa', 'est-ticket', 'est-total-noites'];
+    limpar.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = id.includes('total') || id === 'est-mais-longa' ? '0' : (id === 'est-ocupacao' ? '0%' : 'R$ 0,00');
+    });
+    const tbR = document.querySelector('#tabela-ranking-meses tbody');
+    if (tbR) tbR.innerHTML = '<tr><td colspan="8" class="empty-state">Sem reservas para analisar.</td></tr>';
+    const tbH = document.querySelector('#tabela-top-hospedes tbody');
+    if (tbH) tbH.innerHTML = '<tr><td colspan="7" class="empty-state">Sem reservas para analisar.</td></tr>';
+    const heat = document.getElementById('heatmap-ocupacao');
+    if (heat) heat.innerHTML = '<div class="empty-state">Sem dados.</div>';
+    return;
+  }
+
+  // === KPIs PRINCIPAIS ===
+  const totalReservas = reservas.length;
+  const totalNoites = reservas.reduce((s, r) => s + (r.noites || 0), 0);
+  const totalBruto = reservas.reduce((s, r) => s + (r.bruto || 0), 0);
+  const totalLiquido = reservas.reduce((s, r) => s + (r.liquido || 0), 0);
+  const diariaMedia = totalNoites ? totalBruto / totalNoites : 0;
+  const estadiaMedia = totalReservas ? totalNoites / totalReservas : 0;
+  const ticketMedio = totalReservas ? totalLiquido / totalReservas : 0;
+
+  document.getElementById('est-diaria').textContent = fmt(diariaMedia);
+  document.getElementById('est-diaria-sub').textContent = `${fmt(totalBruto)} ÷ ${totalNoites} noites`;
+  document.getElementById('est-estadia').textContent = estadiaMedia.toFixed(1) + ' noites';
+  document.getElementById('est-ticket').textContent = fmt(ticketMedio);
+  document.getElementById('est-total-noites').textContent = totalNoites;
+  document.getElementById('est-total-noites-sub').textContent = `Em ${totalReservas} reservas`;
+
+  // Taxa de ocupação: noites alugadas / dias do período
+  const cfg = configEfetiva();
+  const mesIni = cfg.mesInicioOperacao || '2026-04';
+  const [aIni, mIni] = mesIni.split('-').map(Number);
+  const dataInicio = new Date(aIni, mIni - 1, 1);
+  const hoje = new Date();
+  const diasDecorridos = Math.max(1, Math.floor((hoje - dataInicio) / (24 * 3600 * 1000)));
+  const noitesEfetivas = reservas
+    .filter(r => r.inicio && r.inicio >= mesIni)
+    .reduce((s, r) => s + (r.noites || 0), 0);
+  const taxaOcupacao = (noitesEfetivas / diasDecorridos) * 100;
+  document.getElementById('est-ocupacao').textContent = Math.min(100, taxaOcupacao).toFixed(1) + '%';
+  document.getElementById('est-ocupacao-sub').textContent = `${noitesEfetivas} de ${diasDecorridos} dias`;
+
+  // Maior reserva
+  const maiorReserva = reservas.reduce((max, r) => (r.liquido > (max?.liquido || 0) ? r : max), null);
+  if (maiorReserva) {
+    document.getElementById('est-maior-reserva').textContent = fmt(maiorReserva.liquido);
+    document.getElementById('est-maior-reserva-sub').textContent =
+      `${maiorReserva.hospede || '-'} · ${maiorReserva.noites || 0}n · ${maiorReserva.inicio || '-'}`;
+  }
+
+  // Reserva mais longa
+  const maisLonga = reservas.reduce((max, r) => ((r.noites || 0) > (max?.noites || 0) ? r : max), null);
+  if (maisLonga) {
+    document.getElementById('est-mais-longa').textContent = (maisLonga.noites || 0) + ' noites';
+    document.getElementById('est-mais-longa-sub').textContent =
+      `${maisLonga.hospede || '-'} · ${maisLonga.inicio || '-'}`;
+  }
+
+  // Lead time médio (se tiver dataReserva)
+  const reservasComLeadtime = reservas.filter(r => r.dataReserva && r.inicio);
+  let leadtimeMedio = 0;
+  if (reservasComLeadtime.length) {
+    const totalLead = reservasComLeadtime.reduce((s, r) => {
+      const dr = parseData(r.dataReserva);
+      const di = parseData(r.inicio);
+      if (dr && di) return s + diasEntreDatas(dr, di);
+      return s;
+    }, 0);
+    leadtimeMedio = totalLead / reservasComLeadtime.length;
+    document.getElementById('est-leadtime').textContent = leadtimeMedio.toFixed(0) + ' dias';
+  } else {
+    document.getElementById('est-leadtime').textContent = '—';
+  }
+
+  // === RESERVAS POR DIA DA SEMANA ===
+  const porDia = [0, 0, 0, 0, 0, 0, 0];
+  const receitaPorDia = [0, 0, 0, 0, 0, 0, 0];
+  reservas.forEach(r => {
+    const d = parseData(r.inicio);
+    if (d) {
+      const idx = d.getDay();
+      porDia[idx]++;
+      receitaPorDia[idx] += r.liquido || 0;
+    }
+  });
+
+  // Gráfico dia semana
+  const ctxDS = document.getElementById('chartDiaSemana');
+  if (ctxDS) {
+    if (charts.diaSemana) charts.diaSemana.destroy();
+    const maxIdx = porDia.indexOf(Math.max(...porDia));
+    const cores = porDia.map((_, i) => i === maxIdx ? '#00A878' : '#7B61FF');
+    charts.diaSemana = new Chart(ctxDS, {
+      type: 'bar',
+      data: {
+        labels: nomesDiasSemana(),
+        datasets: [{ label: 'Reservas', data: porDia, backgroundColor: cores, borderRadius: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+    const dia = nomesDiasSemana()[maxIdx];
+    const insight = document.getElementById('dia-semana-insight');
+    if (insight) {
+      const total = porDia.reduce((s, n) => s + n, 0);
+      const pct = total > 0 ? (porDia[maxIdx] / total * 100).toFixed(0) : 0;
+      insight.innerHTML = `💡 <strong>${dia}</strong> é o dia preferido para check-in (${porDia[maxIdx]} de ${total} reservas = ${pct}%).`;
+    }
+  }
+
+  // Gráfico receita dia semana
+  const ctxRD = document.getElementById('chartReceitaDia');
+  if (ctxRD) {
+    if (charts.receitaDia) charts.receitaDia.destroy();
+    const maxIdxR = receitaPorDia.indexOf(Math.max(...receitaPorDia));
+    const coresR = receitaPorDia.map((_, i) => i === maxIdxR ? '#00A878' : '#FF8800');
+    charts.receitaDia = new Chart(ctxRD, {
+      type: 'bar',
+      data: {
+        labels: nomesDiasSemana(),
+        datasets: [{ label: 'Receita líquida', data: receitaPorDia, backgroundColor: coresR, borderRadius: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => 'R$ ' + c.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) } }
+        },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
+      }
+    });
+    const diaR = nomesDiasSemana()[maxIdxR];
+    const insightR = document.getElementById('receita-dia-insight');
+    if (insightR) {
+      const tot = receitaPorDia.reduce((s, n) => s + n, 0);
+      const pct = tot > 0 ? (receitaPorDia[maxIdxR] / tot * 100).toFixed(0) : 0;
+      insightR.innerHTML = `💡 <strong>${diaR}</strong> gera mais receita (${fmt(receitaPorDia[maxIdxR])} = ${pct}% do total).`;
+    }
+  }
+
+  // === RANKING MENSAL ===
+  const porMes = {};
+  reservas.forEach(r => {
+    if (!r.inicio) return;
+    const ym = r.inicio.slice(0, 7);
+    if (!porMes[ym]) porMes[ym] = { reservas: 0, noites: 0, bruto: 0, liquido: 0 };
+    porMes[ym].reservas++;
+    porMes[ym].noites += r.noites || 0;
+    porMes[ym].bruto += r.bruto || 0;
+    porMes[ym].liquido += r.liquido || 0;
+  });
+  const ranking = Object.entries(porMes).map(([ym, v]) => {
+    const [a, m] = ym.split('-').map(Number);
+    const diasMes = new Date(a, m, 0).getDate();
+    return {
+      mes: ym,
+      ...v,
+      ocupacao: v.noites / diasMes * 100,
+      diariaMedia: v.noites ? v.bruto / v.noites : 0,
+      ticketMedio: v.reservas ? v.liquido / v.reservas : 0
+    };
+  }).sort((a, b) => b.liquido - a.liquido);
+
+  const tbR = document.querySelector('#tabela-ranking-meses tbody');
+  if (tbR) {
+    tbR.innerHTML = '';
+    ranking.forEach((m, idx) => {
+      const medalha = idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
+      const ocupacaoCor = m.ocupacao >= 70 ? '#00A878' : m.ocupacao >= 40 ? '#FF8800' : '#999';
+      tbR.innerHTML += `<tr>
+        <td><strong>${medalha}${nomeMes(m.mes)}</strong></td>
+        <td>${m.reservas}</td>
+        <td>${m.noites}</td>
+        <td style="color:${ocupacaoCor}; font-weight:600">${m.ocupacao.toFixed(1)}%</td>
+        <td>${fmt(m.bruto)}</td>
+        <td style="color:#00A878; font-weight:600">${fmt(m.liquido)}</td>
+        <td>${fmt(m.diariaMedia)}</td>
+        <td>${fmt(m.ticketMedio)}</td>
+      </tr>`;
+    });
+  }
+
+  // === DISTRIBUIÇÃO DE DURAÇÃO ===
+  const duracaoBuckets = { '1 noite': 0, '2 noites': 0, '3-4 noites': 0, '5-7 noites': 0, '8-14 noites': 0, '15+ noites': 0 };
+  reservas.forEach(r => {
+    const n = r.noites || 0;
+    if (n === 1) duracaoBuckets['1 noite']++;
+    else if (n === 2) duracaoBuckets['2 noites']++;
+    else if (n <= 4) duracaoBuckets['3-4 noites']++;
+    else if (n <= 7) duracaoBuckets['5-7 noites']++;
+    else if (n <= 14) duracaoBuckets['8-14 noites']++;
+    else duracaoBuckets['15+ noites']++;
+  });
+
+  const ctxDur = document.getElementById('chartDuracao');
+  if (ctxDur) {
+    if (charts.duracao) charts.duracao.destroy();
+    charts.duracao = new Chart(ctxDur, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(duracaoBuckets),
+        datasets: [{
+          data: Object.values(duracaoBuckets),
+          backgroundColor: ['#FF385C', '#FF8800', '#FFB800', '#00A878', '#0073E6', '#7B61FF']
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
+      }
+    });
+  }
+
+  // === LEAD TIME ===
+  const leadBuckets = { '0-3 dias': 0, '4-7 dias': 0, '8-14 dias': 0, '15-30 dias': 0, '31-60 dias': 0, '60+ dias': 0 };
+  reservasComLeadtime.forEach(r => {
+    const dr = parseData(r.dataReserva);
+    const di = parseData(r.inicio);
+    if (!dr || !di) return;
+    const dias = diasEntreDatas(dr, di);
+    if (dias <= 3) leadBuckets['0-3 dias']++;
+    else if (dias <= 7) leadBuckets['4-7 dias']++;
+    else if (dias <= 14) leadBuckets['8-14 dias']++;
+    else if (dias <= 30) leadBuckets['15-30 dias']++;
+    else if (dias <= 60) leadBuckets['31-60 dias']++;
+    else leadBuckets['60+ dias']++;
+  });
+
+  const ctxLT = document.getElementById('chartLeadtime');
+  if (ctxLT) {
+    if (charts.leadtime) charts.leadtime.destroy();
+    if (reservasComLeadtime.length === 0) {
+      ctxLT.parentElement.innerHTML = '<div class="empty-state" style="height:280px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px">' +
+        '<div>⏱️ Lead time não disponível</div>' +
+        '<div style="font-size:11px; color:#888">Disponível apenas após reimportar CSVs (campo "Data da reserva").</div></div>';
+    } else {
+      charts.leadtime = new Chart(ctxLT, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(leadBuckets),
+          datasets: [{ label: 'Reservas', data: Object.values(leadBuckets), backgroundColor: '#7B61FF', borderRadius: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+    }
+  }
+
+  // === TOP HÓSPEDES ===
+  const porHospede = {};
+  reservas.forEach(r => {
+    const nome = (r.hospede || 'Sem nome').trim();
+    if (!porHospede[nome]) porHospede[nome] = { reservas: 0, noites: 0, bruto: 0, liquido: 0, ultima: null };
+    porHospede[nome].reservas++;
+    porHospede[nome].noites += r.noites || 0;
+    porHospede[nome].bruto += r.bruto || 0;
+    porHospede[nome].liquido += r.liquido || 0;
+    if (!porHospede[nome].ultima || r.inicio > porHospede[nome].ultima) {
+      porHospede[nome].ultima = r.inicio;
+    }
+  });
+  const topHospedes = Object.entries(porHospede)
+    .map(([nome, v]) => ({ nome, ...v }))
+    .sort((a, b) => b.liquido - a.liquido)
+    .slice(0, 15);
+
+  const tbH = document.querySelector('#tabela-top-hospedes tbody');
+  if (tbH) {
+    tbH.innerHTML = '';
+    if (!topHospedes.length) {
+      tbH.innerHTML = '<tr><td colspan="7" class="empty-state">Sem hóspedes.</td></tr>';
+    } else {
+      topHospedes.forEach((h, idx) => {
+        const medalha = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1);
+        const recorrente = h.reservas > 1 ? `<span class="pill pill-green" style="margin-left:6px; font-size:10px">${h.reservas}x</span>` : '';
+        tbH.innerHTML += `<tr>
+          <td><strong>${medalha}</strong></td>
+          <td>${h.nome} ${recorrente}</td>
+          <td>${h.reservas}</td>
+          <td>${h.noites}</td>
+          <td>${fmt(h.bruto)}</td>
+          <td style="color:#00A878; font-weight:600">${fmt(h.liquido)}</td>
+          <td style="font-size:12px; color:#666">${h.ultima || '-'}</td>
+        </tr>`;
+      });
+    }
+  }
+
+  // === HEATMAP DE OCUPAÇÃO ===
+  renderHeatmapOcupacao();
+}
+
+function renderHeatmapOcupacao() {
+  const reservas = getReservasFiltradas();
+  const container = document.getElementById('heatmap-ocupacao');
+  if (!container) return;
+
+  // Coletar (ano, mês) => noites
+  const dados = {};
+  const anos = new Set();
+  reservas.forEach(r => {
+    const di = parseData(r.inicio);
+    const df = parseData(r.fim);
+    if (!di || !df) return;
+    // Distribuir noites pelos meses que a reserva atravessa
+    let cur = new Date(di);
+    while (cur < df) {
+      const a = cur.getFullYear();
+      const m = cur.getMonth();
+      anos.add(a);
+      const key = `${a}-${m}`;
+      dados[key] = (dados[key] || 0) + 1;
+      cur.setDate(cur.getDate() + 1);
+    }
+  });
+
+  if (!anos.size) {
+    container.innerHTML = '<div class="empty-state">Sem dados de reservas com datas válidas.</div>';
+    return;
+  }
+
+  const anosOrdenados = [...anos].sort();
+  const mesesNomes = nomesMesesCurtos();
+
+  // Encontrar max para escala de cor
+  const maxNoites = Math.max(...Object.values(dados));
+
+  let html = '<div style="overflow-x:auto"><table style="border-collapse:separate; border-spacing:4px; margin:0 auto">';
+  html += '<thead><tr><th style="text-align:left; padding:6px 10px; font-size:11px; color:#666; font-weight:600">Ano</th>';
+  mesesNomes.forEach(m => html += `<th style="text-align:center; padding:6px 4px; font-size:11px; color:#666; font-weight:600; min-width:48px">${m}</th>`);
+  html += '</tr></thead><tbody>';
+
+  anosOrdenados.forEach(a => {
+    html += `<tr><td style="text-align:left; padding:6px 10px; font-size:13px; font-weight:600; color:#222">${a}</td>`;
+    for (let m = 0; m < 12; m++) {
+      const noites = dados[`${a}-${m}`] || 0;
+      const intensidade = maxNoites > 0 ? noites / maxNoites : 0;
+      let bg, fg;
+      if (noites === 0) {
+        bg = '#f5f5f5'; fg = '#bbb';
+      } else {
+        // gradiente de roxo claro -> roxo escuro
+        const alpha = 0.15 + intensidade * 0.85;
+        bg = `rgba(123, 97, 255, ${alpha})`;
+        fg = intensidade > 0.5 ? 'white' : '#222';
+      }
+      const diasMes = new Date(a, m + 1, 0).getDate();
+      const pct = ((noites / diasMes) * 100).toFixed(0);
+      html += `<td style="background:${bg}; color:${fg}; text-align:center; padding:10px 4px; border-radius:6px; font-size:13px; font-weight:600; min-width:48px" title="${nomesDiasSemana()[0]}, ${mesesNomes[m]}/${a}: ${noites} noites alugadas (${pct}% do mês)">
+        ${noites || '—'}
+      </td>`;
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="margin-top:10px; font-size:11px; color:#666; text-align:center">Cada célula = número de noites alugadas no mês. Cor escura = mais ocupação.</div>';
+  html += '</div>';
+  container.innerHTML = html;
+}
+
 // ==================== BACKUP ====================
 function exportarBackup() {
   const json = JSON.stringify(dados, null, 2);
@@ -4152,6 +4704,7 @@ function renderTudo() {
   renderImpostos();
   renderCharts();
   renderDreCharts();
+  renderEstatisticas();
 }
 
 // drag & drop
