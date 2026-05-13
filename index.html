@@ -739,26 +739,77 @@
 
   <!-- =================== INVESTIMENTO =================== -->
   <div id="investimento" class="content">
+    <!-- KPIs Consolidados -->
     <div class="grid grid-4">
+      <div class="card" style="border-left:4px solid #FF385C">
+        <h3>💎 Custo TOTAL</h3>
+        <div class="value" id="inv-custo-total" style="color:#FF385C">R$ 0,00</div>
+        <div class="sub" id="inv-custo-total-sub">Aquisição + Montagem</div>
+      </div>
+      <div class="card" style="border-left:4px solid #9F4FFF">
+        <h3>🏠 Aquisição do Imóvel</h3>
+        <div class="value" id="inv-aquisicao-total" style="color:#9F4FFF">R$ 0,00</div>
+        <div class="sub" id="inv-aquisicao-sub">Entrada + taxas + cartório</div>
+      </div>
       <div class="card purple">
-        <h3>Investimento Total</h3>
+        <h3>🔨 Investimento Airbnb</h3>
         <div class="value" id="inv-total">R$ 0,00</div>
-        <div class="sub">Soma de todos os itens</div>
+        <div class="sub">Móveis, eletro, decoração</div>
       </div>
       <div class="card orange">
-        <h3>Parcela Deste Mês</h3>
+        <h3>📅 Parcela Deste Mês</h3>
         <div class="value" id="inv-parcela-atual">R$ 0,00</div>
         <div class="sub" id="inv-parcela-atual-sub">Itens com parcelas ativas</div>
       </div>
+    </div>
+
+    <div class="grid grid-3" style="margin-top:16px">
       <div class="card red">
-        <h3>Saldo Devedor</h3>
+        <h3>Saldo Devedor (montagem)</h3>
         <div class="value" id="inv-saldo-devedor">R$ 0,00</div>
         <div class="sub" id="inv-saldo-devedor-sub">Total ainda a pagar</div>
       </div>
       <div class="card green">
-        <h3>Já Pago</h3>
+        <h3>Já Pago (montagem)</h3>
         <div class="value" id="inv-ja-pago">R$ 0,00</div>
         <div class="sub" id="inv-ja-pago-sub">Total quitado até agora</div>
+      </div>
+      <div class="card blue">
+        <h3>📊 % Total Recuperado</h3>
+        <div class="value" id="inv-recuperado" style="color:#0073E6">0%</div>
+        <div class="sub" id="inv-recuperado-sub">Receita líquida vs Custo total</div>
+      </div>
+    </div>
+
+    <!-- AQUISIÇÃO DO IMÓVEL -->
+    <div class="card" style="margin-top:16px; border:1px solid #9F4FFF33; background:#FAF7FF">
+      <div class="header-actions">
+        <h2 style="display:flex; align-items:center; gap:8px">🏠 Aquisição do Imóvel</h2>
+        <button class="btn btn-primary btn-sm" onclick="adicionarAquisicao()" style="background:#9F4FFF">+ Adicionar gasto</button>
+      </div>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Entrada, ITBI, escritura, registro em cartório, avaliação bancária, taxas... Tudo que você pagou pra adquirir o imóvel (que não está no financiamento).
+      </p>
+      <div style="overflow-x:auto">
+        <table id="tabela-aquisicao">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Categoria</th>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr style="background:#9F4FFF22; font-weight:700">
+              <td colspan="3" style="text-align:right; padding-right:14px">Total Aquisição:</td>
+              <td id="aquisicao-total-tabela" style="color:#9F4FFF">R$ 0,00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
 
@@ -932,81 +983,186 @@
   <!-- =================== BREAKEVEN =================== -->
   <div id="breakeven" class="content">
     <div class="alert alert-info">
-      O <strong>breakeven</strong> (ponto de equilíbrio) mostra quando a receita acumulada cobre todos os custos. Compare os dois cenários: <strong>sem</strong> e <strong>com</strong> a parcela do apartamento.
+      O <strong>breakeven</strong> (ponto de equilíbrio) mostra quando a receita acumulada cobre todos os custos. Veja <strong>3 cenários</strong> diferentes, do mais simples ao mais conservador.
     </div>
 
-    <div class="grid grid-2">
-      <!-- Cenário SEM apto -->
-      <div class="card">
-        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🏠 Cenário 1: SEM parcela do apartamento</h2>
-        <p style="font-size:13px; color:#666; margin-bottom:14px">Considera só investimento inicial + despesas operacionais</p>
-
-        <div style="display:grid; gap:8px; margin-bottom:14px">
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Investimento inicial:</span>
-            <strong id="be1-investimento">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Despesas acumuladas:</span>
-            <strong id="be1-despesas">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Custo total acumulado:</span>
-            <strong id="be1-custo" style="color:#E61E4D">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Receita líquida acumulada:</span>
-            <strong id="be1-receita" style="color:#00A878">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0">
-            <span style="color:#666">Falta para o breakeven:</span>
-            <strong id="be1-falta">R$ 0,00</strong>
-          </div>
+    <!-- KPIs resumo dos 3 cenários -->
+    <div class="grid grid-3">
+      <div class="card" style="border-left:4px solid #00A878">
+        <h3>🟢 Cenário A — Operacional</h3>
+        <div style="margin:8px 0; font-size:12px; color:#666; line-height:1.5">
+          Considera só os <strong>custos operacionais</strong> (despesas + impostos + parcelas). <em>Sem aquisição, sem montagem, sem custo de oportunidade.</em>
         </div>
-        <div class="breakeven-bar"><div class="breakeven-progress" id="be1-bar" style="width:0%">0%</div></div>
-        <div style="margin-top:14px; padding:12px; background:#fafafa; border-radius:8px; font-size:13px" id="be1-projecao">Adicione receitas para ver a projeção.</div>
+        <div style="font-size:11px; color:#888; text-transform:uppercase">Status atual</div>
+        <div class="value" id="beA-status" style="color:#00A878; font-size:18px">—</div>
+        <div class="sub" id="beA-projecao">—</div>
       </div>
-
-      <!-- Cenário COM apto -->
-      <div class="card">
-        <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">🏢 Cenário 2: COM parcela do apartamento</h2>
-        <p style="font-size:13px; color:#666; margin-bottom:14px">Considera custo total real, incluindo o financiamento</p>
-
-        <div style="margin-bottom:14px; padding:10px; background:#fff5f7; border-radius:8px; font-size:13px; color:#666">
-          💡 As parcelas do apto agora são cadastradas <strong>mês a mês</strong> na aba <strong>📉 Despesas</strong>, na categoria <strong>"Parcela Apto"</strong>. Isso permite valores diferentes em cada mês (sistema SAC).
-          <input type="hidden" id="parcela-apto" value="0">
+      <div class="card" style="border-left:4px solid #0073E6">
+        <h3>🔵 Cenário B — Investimento Total</h3>
+        <div style="margin:8px 0; font-size:12px; color:#666; line-height:1.5">
+          Inclui também a <strong>aquisição do imóvel</strong> + a <strong>montagem do Airbnb</strong>. Pergunta: <em>"quando recupero tudo que coloquei?"</em>
         </div>
-
-        <div style="display:grid; gap:8px; margin-bottom:14px">
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Investimento inicial:</span>
-            <strong id="be2-investimento">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Despesas + parcelas apto:</span>
-            <strong id="be2-despesas">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Custo total acumulado:</span>
-            <strong id="be2-custo" style="color:#E61E4D">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee">
-            <span style="color:#666">Receita líquida acumulada:</span>
-            <strong id="be2-receita" style="color:#00A878">R$ 0,00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; padding:8px 0">
-            <span style="color:#666">Falta para o breakeven:</span>
-            <strong id="be2-falta">R$ 0,00</strong>
-          </div>
+        <div style="font-size:11px; color:#888; text-transform:uppercase">Status atual</div>
+        <div class="value" id="beB-status" style="color:#0073E6; font-size:18px">—</div>
+        <div class="sub" id="beB-projecao">—</div>
+      </div>
+      <div class="card" style="border-left:4px solid #7B61FF">
+        <h3>🟣 Cenário C — + Custo Oportunidade</h3>
+        <div style="margin:8px 0; font-size:12px; color:#666; line-height:1.5">
+          Inclui Cenário B + o <strong>rendimento que o dinheiro teria</strong> na Selic. Pergunta: <em>"vale mais que renda fixa?"</em>
         </div>
-        <div class="breakeven-bar"><div class="breakeven-progress" id="be2-bar" style="width:0%">0%</div></div>
-        <div style="margin-top:14px; padding:12px; background:#fafafa; border-radius:8px; font-size:13px" id="be2-projecao">Adicione receitas para ver a projeção.</div>
+        <div style="font-size:11px; color:#888; text-transform:uppercase">Status atual</div>
+        <div class="value" id="beC-status" style="color:#7B61FF; font-size:18px">—</div>
+        <div class="sub" id="beC-projecao">—</div>
       </div>
     </div>
 
+    <!-- Configuração do Custo de Oportunidade -->
+    <div class="card" style="margin-top:16px; border:1px solid #7B61FF33; background:#F8F5FF">
+      <div class="header-actions">
+        <h2 style="display:flex; align-items:center; gap:8px">💰 Custo de Oportunidade (Cenário C)</h2>
+        <div style="display:flex; gap:8px; align-items:center">
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer">
+            <input type="checkbox" id="co-ativo" onchange="atualizarCustoOportunidade()">
+            <span>Ativo</span>
+          </label>
+        </div>
+      </div>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Calcula quanto o dinheiro investido teria rendido se aplicado em renda fixa. <strong>Configuração por imóvel.</strong>
+      </p>
+
+      <div class="grid grid-3" style="gap:12px; margin-bottom:12px">
+        <div>
+          <label class="label">Tipo de taxa</label>
+          <select id="co-tipo" onchange="atualizarCustoOportunidade()">
+            <option value="selic">Selic</option>
+            <option value="cdi">CDI</option>
+            <option value="custom">Personalizada</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Taxa anual padrão (%)</label>
+          <input type="number" id="co-taxa-padrao" step="0.01" min="0" value="11.75" onchange="atualizarCustoOportunidade()">
+        </div>
+        <div>
+          <label class="label" style="display:flex; align-items:center; gap:6px">
+            <input type="checkbox" id="co-ir" style="width:auto" onchange="atualizarCustoOportunidade()">
+            Descontar IR sobre rendimento (15-22,5%)
+          </label>
+          <div style="font-size:11px; color:#888; margin-top:6px">Simula o que sobraria líquido caso o dinheiro tivesse ficado aplicado.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px">📅 Taxas por ano (opcional)</div>
+        <p style="font-size:11px; color:#888; margin-bottom:8px">Sobrescreve a taxa padrão para o ano específico. Útil porque a Selic varia (ex: 2024 foi 10,5%, 2025 ~11%, 2026 11,75%).</p>
+        <div id="co-taxas-anos" style="display:flex; gap:8px; flex-wrap:wrap"></div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="adicionarTaxaAno()">+ Adicionar ano</button>
+      </div>
+    </div>
+
+    <!-- Detalhes dos cenários (3 cards) -->
+    <div class="grid grid-3" style="margin-top:16px">
+      <!-- A -->
+      <div class="card">
+        <h3 style="color:#00A878; font-size:15px; font-weight:600">🟢 Cenário A — Detalhamento</h3>
+        <div style="display:grid; gap:6px; margin:12px 0; font-size:13px">
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Despesas operacionais:</span>
+            <strong id="beA-desp">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Impostos:</span>
+            <strong id="beA-imp">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Parcelas (invest. + apto):</span>
+            <strong id="beA-parc">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo acumulado:</span>
+            <strong id="beA-custo" style="color:#E61E4D">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0">
+            <span style="color:#666">Receita líquida acum.:</span>
+            <strong id="beA-receita" style="color:#00A878">R$ 0,00</strong>
+          </div>
+        </div>
+        <div class="breakeven-bar"><div class="breakeven-progress" id="beA-bar" style="width:0%; background:#00A878">0%</div></div>
+      </div>
+      <!-- B -->
+      <div class="card">
+        <h3 style="color:#0073E6; font-size:15px; font-weight:600">🔵 Cenário B — Detalhamento</h3>
+        <div style="display:grid; gap:6px; margin:12px 0; font-size:13px">
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Aquisição do imóvel:</span>
+            <strong id="beB-aquis" style="color:#9F4FFF">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Montagem (invest. inicial):</span>
+            <strong id="beB-invest">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custos operacionais:</span>
+            <strong id="beB-op">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo total acumulado:</span>
+            <strong id="beB-custo" style="color:#E61E4D">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0">
+            <span style="color:#666">Receita líquida acum.:</span>
+            <strong id="beB-receita" style="color:#00A878">R$ 0,00</strong>
+          </div>
+        </div>
+        <div class="breakeven-bar"><div class="breakeven-progress" id="beB-bar" style="width:0%; background:#0073E6">0%</div></div>
+      </div>
+      <!-- C -->
+      <div class="card">
+        <h3 style="color:#7B61FF; font-size:15px; font-weight:600">🟣 Cenário C — Detalhamento</h3>
+        <div style="display:grid; gap:6px; margin:12px 0; font-size:13px">
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo B (sem juros):</span>
+            <strong id="beC-base">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo B + rendimento Selic:</span>
+            <strong id="beC-corrigido" style="color:#7B61FF">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo oportunidade (Δ):</span>
+            <strong id="beC-delta" style="color:#FF8800">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee">
+            <span style="color:#666">Custo acumulado total:</span>
+            <strong id="beC-custo" style="color:#E61E4D">R$ 0,00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 0">
+            <span style="color:#666">Receita líquida acum.:</span>
+            <strong id="beC-receita" style="color:#00A878">R$ 0,00</strong>
+          </div>
+        </div>
+        <div class="breakeven-bar"><div class="breakeven-progress" id="beC-bar" style="width:0%; background:#7B61FF">0%</div></div>
+      </div>
+    </div>
+
+    <!-- Gráfico comparativo dos 3 cenários -->
     <div class="card" style="margin-top:16px">
-      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px">📈 Evolução acumulada (Receita × Custos)</h2>
-      <div class="chart-container" style="height:380px"><canvas id="chartBreakeven"></canvas></div>
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">📈 Comparação dos 3 cenários ao longo do tempo</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:12px">
+        Receita acumulada (verde) versus os 3 cenários de custo. O ponto de cruzamento é o breakeven.
+      </p>
+      <div class="chart-container" style="height:420px"><canvas id="chartBreakeven"></canvas></div>
+    </div>
+
+    <!-- Projeção de tempo -->
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">⏱️ Projeção: Quando você recupera tudo?</h2>
+      <p style="font-size:12px; color:#666; margin-bottom:14px">
+        Baseado na sua receita média líquida atual, estimativa de quando atinge o breakeven em cada cenário.
+      </p>
+      <div id="be-projecao-tabela"></div>
     </div>
   </div>
 
@@ -1160,6 +1316,7 @@
       <div style="margin-bottom:16px; padding:12px; background:#fff5f7; border-radius:8px; font-size:13px; color:#666">
         🏢 <strong>Parcela do apto (sistema SAC):</strong> agora é cadastrada mês a mês na aba 📉 <strong>Despesas</strong>, na categoria "Parcela Apto". Isso permite valores diferentes em cada mês (juros decrescentes do SAC).
         <input type="hidden" id="parcela-apto-config" value="0">
+        <input type="hidden" id="parcela-apto" value="0">
       </div>
     </div>
 
@@ -1351,6 +1508,18 @@ function garantirEstruturaDados() {
     if (typeof imv.deducoes !== 'number') imv.deducoes = 0;
     if (typeof imv.deducoesAuto !== 'boolean') imv.deducoesAuto = true;
     if (!imv.impostosMes) imv.impostosMes = {};
+    // Aquisição do imóvel (entrada, ITBI, cartório, etc)
+    if (!Array.isArray(imv.aquisicao)) imv.aquisicao = [];
+    // Custo de oportunidade
+    if (!imv.custoOportunidade) {
+      imv.custoOportunidade = {
+        tipo: 'selic',         // 'selic' | 'cdi' | 'custom'
+        taxaPadrao: 11.75,     // % a.a.
+        taxasPorAno: {},       // { '2024': 10.5, '2025': 11.0, '2026': 11.75 }
+        considerarIR: false,   // descontar IR de 15% sobre rendimento
+        ativo: true
+      };
+    }
   });
 
   // Atribuir todos os dados sem imovelId ao primeiro imóvel (fallback)
@@ -1575,6 +1744,191 @@ function renderImoveis() {
   });
   html += '</div>';
   cont.innerHTML = html;
+}
+
+// ========== AQUISIÇÃO DO IMÓVEL ==========
+function uidGasto() { return 'aq_' + Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+
+function renderAquisicao() {
+  const imv = imovelAtual();
+  const cont = document.querySelector('#tabela-aquisicao tbody');
+  const totEl = document.getElementById('aquisicao-total-tabela');
+  if (!cont || !totEl) return;
+
+  // Em modo "todos" — mostra todos os gastos de todos os imóveis com coluna extra
+  const mostrarImovel = dados.filtroImovelId === 'todos' && dados.imoveis.length > 1;
+  let lista = [];
+  if (mostrarImovel) {
+    dados.imoveis.forEach(im => {
+      (im.aquisicao || []).forEach(g => lista.push({ ...g, _imovelId: im.id, _imovelNome: im.nome, _imovelCor: im.cor }));
+    });
+  } else {
+    if (imv) lista = (imv.aquisicao || []).map(g => ({ ...g }));
+  }
+  lista.sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+
+  if (!lista.length) {
+    cont.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhum gasto de aquisição cadastrado. Clique em "+ Adicionar gasto" para começar.</td></tr>';
+    totEl.textContent = fmt(0);
+    return;
+  }
+
+  let html = '', total = 0;
+  lista.forEach(g => {
+    total += g.valor || 0;
+    const tagImv = mostrarImovel ?
+      `<span class="pill" style="background:${(g._imovelCor||'#FF385C')}33; color:${g._imovelCor||'#FF385C'}; margin-right:6px; font-size:10px">${g._imovelNome}</span>` : '';
+    html += `<tr>
+      <td>${tagImv}${g.data || '-'}</td>
+      <td><span class="pill pill-purple" style="background:#9F4FFF22; color:#7B61FF">${g.categoria}</span></td>
+      <td>${g.descricao || '-'}</td>
+      <td style="font-weight:600; color:#9F4FFF">${fmt(g.valor)}</td>
+      <td>
+        <button class="btn-edit" onclick="editarAquisicao('${g.id}')" title="Editar">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="removerAquisicao('${g.id}')" title="Remover">×</button>
+      </td>
+    </tr>`;
+  });
+  cont.innerHTML = html;
+  totEl.textContent = fmt(total);
+}
+
+function adicionarAquisicao() {
+  if (dados.filtroImovelId === 'todos') {
+    alert('Selecione um imóvel específico no topo para adicionar gastos de aquisição.');
+    return;
+  }
+  const categorias = ['Entrada', 'ITBI', 'Registro Cartório', 'Escritura', 'Avaliação Bancária', 'Taxa Bancária', 'Corretor', 'Documentação', 'Outros'];
+  abrirModalEdicao(
+    `+ Gasto de Aquisição`,
+    [
+      { tipo: 'row', campos: [
+        { id: 'data', label: 'Data do pagamento', valor: new Date().toISOString().slice(0,10), tipo: 'date' },
+        { id: 'categoria', label: 'Categoria', valor: 'Entrada', tipo: 'select', opcoes: categorias.map(c => ({ valor: c, label: c })) }
+      ]},
+      { id: 'descricao', label: 'Descrição', valor: '', placeholder: 'Ex: Entrada do financiamento Caixa' },
+      { id: 'valor', label: 'Valor (R$)', valor: 0, tipo: 'number', step: '0.01', min: '0' }
+    ],
+    (v) => {
+      const imv = imovelAtual();
+      if (!imv) return false;
+      const valor = parseFloat(v.valor) || 0;
+      if (valor <= 0) { alert('Informe um valor maior que zero.'); return false; }
+      if (!Array.isArray(imv.aquisicao)) imv.aquisicao = [];
+      imv.aquisicao.push({
+        id: uidGasto(),
+        data: v.data,
+        categoria: v.categoria || 'Outros',
+        descricao: v.descricao || '',
+        valor: valor
+      });
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+function editarAquisicao(id) {
+  // Achar gasto e imóvel
+  let imv = null, gasto = null;
+  for (const im of dados.imoveis) {
+    const g = (im.aquisicao || []).find(x => x.id === id);
+    if (g) { imv = im; gasto = g; break; }
+  }
+  if (!gasto || !imv) return;
+  const categorias = ['Entrada', 'ITBI', 'Registro Cartório', 'Escritura', 'Avaliação Bancária', 'Taxa Bancária', 'Corretor', 'Documentação', 'Outros'];
+  // Adicionar a categoria existente se for "personalizada"
+  if (!categorias.includes(gasto.categoria)) categorias.push(gasto.categoria);
+
+  abrirModalEdicao(
+    `✏️ Editar Gasto de Aquisição (${imv.nome})`,
+    [
+      { tipo: 'row', campos: [
+        { id: 'data', label: 'Data do pagamento', valor: gasto.data, tipo: 'date' },
+        { id: 'categoria', label: 'Categoria', valor: gasto.categoria, tipo: 'select', opcoes: categorias.map(c => ({ valor: c, label: c })) }
+      ]},
+      { id: 'descricao', label: 'Descrição', valor: gasto.descricao || '' },
+      { id: 'valor', label: 'Valor (R$)', valor: gasto.valor, tipo: 'number', step: '0.01', min: '0' }
+    ],
+    (v) => {
+      const valor = parseFloat(v.valor) || 0;
+      if (valor <= 0) { alert('Informe um valor maior que zero.'); return false; }
+      gasto.data = v.data;
+      gasto.categoria = v.categoria;
+      gasto.descricao = v.descricao || '';
+      gasto.valor = valor;
+      salvarDados();
+      renderTudo();
+    }
+  );
+}
+
+function removerAquisicao(id) {
+  for (const im of dados.imoveis) {
+    const idx = (im.aquisicao || []).findIndex(x => x.id === id);
+    if (idx >= 0) {
+      const g = im.aquisicao[idx];
+      if (!confirm(`Remover "${g.descricao || g.categoria}" (${fmt(g.valor)})?`)) return;
+      im.aquisicao.splice(idx, 1);
+      salvarDados();
+      renderTudo();
+      return;
+    }
+  }
+}
+
+// Soma da aquisição do(s) imóvel(is) filtrado(s)
+function totalAquisicaoFiltrada() {
+  return getImoveisAtivos().reduce((s, im) =>
+    s + (im.aquisicao || []).reduce((sa, g) => sa + (g.valor || 0), 0), 0);
+}
+
+// ========== CUSTO DE OPORTUNIDADE ==========
+function taxaAnoCusto(ano) {
+  const imv = imovelAtual();
+  if (!imv) return 11.75;
+  const co = imv.custoOportunidade || {};
+  if (co.taxasPorAno && co.taxasPorAno[String(ano)] != null) {
+    return parseFloat(co.taxasPorAno[String(ano)]) || 0;
+  }
+  return parseFloat(co.taxaPadrao) || 11.75;
+}
+
+// Aplica juros compostos mensais entre duas datas (YYYY-MM-DD ou YYYY-MM)
+// Considera taxa do ano atual proporcional a cada mês
+function corrigirMonetariamente(valor, dataInicio, dataFim) {
+  if (!valor || !dataInicio || !dataFim || dataInicio >= dataFim) return valor || 0;
+  const imv = imovelAtual();
+  const co = imv ? (imv.custoOportunidade || {}) : {};
+  const considerarIR = !!co.considerarIR;
+
+  let [a1, m1] = dataInicio.split('-').slice(0,2).map(Number);
+  let [a2, m2] = dataFim.split('-').slice(0,2).map(Number);
+  if (!a1 || !m1 || !a2 || !m2) return valor;
+
+  let acumulado = valor;
+  let curA = a1, curM = m1;
+  // Avança 1 mês de cada vez até chegar em (a2, m2)
+  while (curA < a2 || (curA === a2 && curM < m2)) {
+    const taxaAa = taxaAnoCusto(curA);
+    const taxaAm = Math.pow(1 + taxaAa/100, 1/12) - 1;
+    acumulado *= (1 + taxaAm);
+    curM++;
+    if (curM > 12) { curM = 1; curA++; }
+  }
+
+  if (considerarIR) {
+    // Desconta IR sobre o rendimento (15% para >2 anos, 17.5% pra 1-2 anos, 20% até 1 ano, 22.5% até 6 meses)
+    // Simplificação: aplica 15% se mais de 2 anos, 20% se mais de 6 meses, senão 22.5%
+    const meses = (a2 - a1) * 12 + (m2 - m1);
+    let aliqIR = 0.225;
+    if (meses > 24) aliqIR = 0.15;
+    else if (meses > 12) aliqIR = 0.175;
+    else if (meses > 6) aliqIR = 0.20;
+    const rendimento = acumulado - valor;
+    acumulado = valor + rendimento * (1 - aliqIR);
+  }
+  return acumulado;
 }
 
 function adicionarImovel() {
@@ -2668,6 +3022,33 @@ function renderCronograma() {
   document.getElementById('inv-ja-pago').textContent = fmt(pagoHoje);
   document.getElementById('inv-ja-pago-sub').textContent = `${pctGeral.toFixed(1)}% do total`;
 
+  // === Aquisição + Custo Total ===
+  const totalAquisicao = totalAquisicaoFiltrada();
+  const custoTotal = valorTotal + totalAquisicao;
+  const aqEl = document.getElementById('inv-aquisicao-total');
+  const aqSubEl = document.getElementById('inv-aquisicao-sub');
+  const ctEl = document.getElementById('inv-custo-total');
+  const ctSubEl = document.getElementById('inv-custo-total-sub');
+  if (aqEl) aqEl.textContent = fmt(totalAquisicao);
+  if (aqSubEl) {
+    const qtd = getImoveisAtivos().reduce((s, im) => s + (im.aquisicao || []).length, 0);
+    aqSubEl.textContent = qtd ? `${qtd} ${qtd===1?'gasto':'gastos'} cadastrado(s)` : 'Sem gastos cadastrados';
+  }
+  if (ctEl) ctEl.textContent = fmt(custoTotal);
+  if (ctSubEl) ctSubEl.textContent = `Aquisição (${fmt(totalAquisicao)}) + Montagem (${fmt(valorTotal)})`;
+
+  // % Recuperado: receita líquida acumulada vs custo total
+  const reservasF = getReservasFiltradas();
+  const recPaga = reservasF.filter(r => r.status === 'pago').reduce((s, r) => s + (r.liquido || 0), 0);
+  const pctRec = custoTotal > 0 ? Math.min(100, (recPaga / custoTotal * 100)) : 0;
+  const recEl = document.getElementById('inv-recuperado');
+  const recSubEl = document.getElementById('inv-recuperado-sub');
+  if (recEl) {
+    recEl.textContent = pctRec.toFixed(1) + '%';
+    recEl.style.color = pctRec >= 100 ? '#00A878' : pctRec >= 50 ? '#FF8800' : '#0073E6';
+  }
+  if (recSubEl) recSubEl.textContent = `${fmt(recPaga)} líquido / ${fmt(custoTotal)} investido`;
+
   // Barra de progresso
   const bar = document.getElementById('inv-progresso-bar');
   const pctEl = document.getElementById('inv-progresso-pct');
@@ -3364,68 +3745,314 @@ function renderBreakeven() {
   const cfg = configEfetiva();
   const mesIni = cfg.mesInicioOperacao || '2026-04';
   const investTotal = getInvestimentoFiltrado().reduce((s,i) => s + i.valor, 0);
+  const aquisicaoTotal = totalAquisicaoFiltrada();
   const meses = calcularResumoMensal();
   const numMeses = meses.length;
   const receitaAcum = meses.reduce((s,m) => s + m.liquido, 0);
-  const despesasAcum = meses.reduce((s,m) => s + m.despesas + m.parcelas, 0);
-  const aptoAcum = meses.reduce((s,m) => s + (m.parcelaApto || 0), 0);
-  const ultimaParcelaApto = numMeses ? meses[numMeses-1].parcelaApto || 0 : 0;
+  const despesasOpAcum = meses.reduce((s,m) => s + m.despesas, 0);
+  const impostosAcum = meses.reduce((s,m) => s + m.imposto, 0);
+  const parcelasAcum = meses.reduce((s,m) => s + m.parcelas + (m.parcelaApto || 0), 0);
 
-  // Cenário 1: SEM apto
-  const custo1 = investTotal + despesasAcum;
-  const falta1 = Math.max(0, custo1 - receitaAcum);
-  const pct1 = custo1 > 0 ? Math.min(100, (receitaAcum / custo1) * 100) : 0;
+  // ========== CENÁRIO A — Operacional ==========
+  const custoA = despesasOpAcum + impostosAcum + parcelasAcum;
+  const faltaA = Math.max(0, custoA - receitaAcum);
+  const pctA = custoA > 0 ? Math.min(100, (receitaAcum / custoA) * 100) : (receitaAcum > 0 ? 100 : 0);
 
-  document.getElementById('be1-investimento').textContent = fmt(investTotal);
-  document.getElementById('be1-despesas').textContent = fmt(despesasAcum);
-  document.getElementById('be1-custo').textContent = fmt(custo1);
-  document.getElementById('be1-receita').textContent = fmt(receitaAcum);
-  document.getElementById('be1-falta').textContent = fmt(falta1);
-  const bar1 = document.getElementById('be1-bar');
-  bar1.style.width = pct1 + '%';
-  bar1.textContent = pct1.toFixed(1) + '%';
-  bar1.className = 'breakeven-progress' + (pct1 >= 100 ? '' : pct1 >= 50 ? ' warning' : ' danger');
+  document.getElementById('beA-desp').textContent = fmt(despesasOpAcum);
+  document.getElementById('beA-imp').textContent = fmt(impostosAcum);
+  document.getElementById('beA-parc').textContent = fmt(parcelasAcum);
+  document.getElementById('beA-custo').textContent = fmt(custoA);
+  document.getElementById('beA-receita').textContent = fmt(receitaAcum);
+  const barA = document.getElementById('beA-bar');
+  barA.style.width = pctA + '%';
+  barA.textContent = pctA.toFixed(1) + '%';
 
-  // Cenário 2: COM apto
-  const custo2 = investTotal + despesasAcum + aptoAcum;
-  const falta2 = Math.max(0, custo2 - receitaAcum);
-  const pct2 = custo2 > 0 ? Math.min(100, (receitaAcum / custo2) * 100) : 0;
+  // ========== CENÁRIO B — Investimento Total ==========
+  const custoB = aquisicaoTotal + investTotal + custoA;
+  const faltaB = Math.max(0, custoB - receitaAcum);
+  const pctB = custoB > 0 ? Math.min(100, (receitaAcum / custoB) * 100) : 0;
 
-  document.getElementById('be2-investimento').textContent = fmt(investTotal);
-  document.getElementById('be2-despesas').textContent = fmt(despesasAcum + aptoAcum);
-  document.getElementById('be2-custo').textContent = fmt(custo2);
-  document.getElementById('be2-receita').textContent = fmt(receitaAcum);
-  document.getElementById('be2-falta').textContent = fmt(falta2);
-  const bar2 = document.getElementById('be2-bar');
-  bar2.style.width = pct2 + '%';
-  bar2.textContent = pct2.toFixed(1) + '%';
-  bar2.className = 'breakeven-progress' + (pct2 >= 100 ? '' : pct2 >= 50 ? ' warning' : ' danger');
+  document.getElementById('beB-aquis').textContent = fmt(aquisicaoTotal);
+  document.getElementById('beB-invest').textContent = fmt(investTotal);
+  document.getElementById('beB-op').textContent = fmt(custoA);
+  document.getElementById('beB-custo').textContent = fmt(custoB);
+  document.getElementById('beB-receita').textContent = fmt(receitaAcum);
+  const barB = document.getElementById('beB-bar');
+  barB.style.width = pctB + '%';
+  barB.textContent = pctB.toFixed(1) + '%';
 
-  // projeções
-  const receitaMediaMes = numMeses ? receitaAcum / numMeses : 0;
-  const proj1 = projecaoBreakeven(custo1, receitaAcum, receitaMediaMes, meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0);
-  const proj2 = projecaoBreakeven(custo2, receitaAcum, receitaMediaMes, (meses.map(m=>m.despesas + m.parcelas).slice(-1)[0] || 0) + ultimaParcelaApto);
+  // ========== CENÁRIO C — + Custo Oportunidade ==========
+  const imv = imovelAtual();
+  const coAtivo = imv && imv.custoOportunidade && imv.custoOportunidade.ativo;
+  const hoje = mesAtualYM() + '-15';
 
-  document.getElementById('be1-projecao').innerHTML = pct1 >= 100
-    ? '✅ <strong>Breakeven atingido!</strong> Você já cobriu o investimento e despesas.'
-    : numMeses && receitaMediaMes > 0
-      ? `📊 Receita média/mês: <strong>${fmt(receitaMediaMes)}</strong>. ${proj1}`
-      : 'Adicione receitas para ver a projeção.';
+  let custoCorrigidoOportunidade = 0;
+  if (coAtivo) {
+    // Cada gasto de aquisição é corrigido de sua data até hoje
+    getImoveisAtivos().forEach(im => {
+      (im.aquisicao || []).forEach(g => {
+        if (!g.data || !g.valor) return;
+        // Usa a data do gasto. Se for só YYYY-MM-DD, ok.
+        const futuro = corrigirMonetariamente(g.valor, g.data, hoje);
+        custoCorrigidoOportunidade += (futuro - g.valor);
+      });
+    });
+    // Cada item de investimento: usar a primeira parcela como referência
+    getInvestimentoFiltrado().forEach(item => {
+      const quando = parseQuandoCompra(item.quando);
+      let mesIniDefault = '2026-04';
+      if (item.imovelId) {
+        const im = dados.imoveis.find(i => i.id === item.imovelId);
+        if (im && im.mesInicioOperacao) mesIniDefault = im.mesInicioOperacao;
+      }
+      const baseM = quando || mesIniDefault;
+      const dataAprox = baseM + '-15';
+      if (dataAprox >= hoje) return;
+      const futuro = corrigirMonetariamente(item.valor || 0, dataAprox, hoje);
+      custoCorrigidoOportunidade += (futuro - (item.valor || 0));
+    });
+    // Despesas operacionais acumuladas no caixa: também corrigir do mês até hoje
+    meses.forEach(m => {
+      const dataMes = m.mes + '-15';
+      if (dataMes >= hoje) return;
+      const valorMes = m.despesas + m.imposto + m.parcelas + (m.parcelaApto || 0);
+      const futuro = corrigirMonetariamente(valorMes, dataMes, hoje);
+      custoCorrigidoOportunidade += (futuro - valorMes);
+    });
+  }
+  const custoC = custoB + custoCorrigidoOportunidade;
+  const pctC = custoC > 0 ? Math.min(100, (receitaAcum / custoC) * 100) : 0;
 
-  document.getElementById('be2-projecao').innerHTML = pct2 >= 100
-    ? '✅ <strong>Breakeven atingido!</strong> Você já cobriu tudo, inclusive o apto.'
-    : numMeses && receitaMediaMes > 0
-      ? `📊 Receita média/mês: <strong>${fmt(receitaMediaMes)}</strong>. ${proj2}`
-      : 'Adicione receitas para ver a projeção.';
+  document.getElementById('beC-base').textContent = fmt(custoB);
+  document.getElementById('beC-corrigido').textContent = fmt(custoC);
+  document.getElementById('beC-delta').textContent = fmt(custoCorrigidoOportunidade);
+  document.getElementById('beC-custo').textContent = fmt(custoC);
+  document.getElementById('beC-receita').textContent = fmt(receitaAcum);
+  const barC = document.getElementById('beC-bar');
+  barC.style.width = pctC + '%';
+  barC.textContent = pctC.toFixed(1) + '%';
+
+  // ========== STATUS dos 3 cenários (topo) ==========
+  const statusEl = (id, pct, falta, custo) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (pct >= 100) {
+      el.textContent = '✅ Atingido!';
+      el.style.color = '#00A878';
+    } else {
+      el.textContent = pct.toFixed(1) + '%';
+    }
+    const sub = document.getElementById(id.replace('-status', '-projecao'));
+    if (sub) {
+      if (pct >= 100) sub.textContent = `Já recuperou ${fmt(receitaAcum - custo)} a mais que o investido`;
+      else sub.textContent = `Faltam ${fmt(falta)}`;
+    }
+  };
+  statusEl('beA-status', pctA, faltaA, custoA);
+  statusEl('beB-status', pctB, faltaB, custoB);
+
+  // C tem status diferenciado: pode ser "Não ativo"
+  const beCStatus = document.getElementById('beC-status');
+  const beCProj = document.getElementById('beC-projecao');
+  if (!coAtivo) {
+    beCStatus.textContent = 'Inativo';
+    beCStatus.style.color = '#999';
+    beCProj.textContent = 'Ative o custo de oportunidade abaixo';
+  } else {
+    const faltaC = Math.max(0, custoC - receitaAcum);
+    if (pctC >= 100) {
+      beCStatus.textContent = '✅ Atingido!';
+      beCStatus.style.color = '#00A878';
+      beCProj.textContent = `Já supera a renda fixa em ${fmt(receitaAcum - custoC)}`;
+    } else {
+      beCStatus.textContent = pctC.toFixed(1) + '%';
+      beCProj.textContent = `Faltam ${fmt(faltaC)} (vs Selic acumulada)`;
+    }
+  }
+
+  // ========== PROJEÇÃO TEMPORAL ==========
+  renderProjecaoBreakeven({
+    pctA, pctB, pctC,
+    faltaA, faltaB, faltaC: Math.max(0, custoC - receitaAcum),
+    custoA, custoB, custoC,
+    receitaAcum, numMeses, meses, coAtivo
+  });
+
+  // Popular UI do custo de oportunidade
+  popularUICustoOportunidade();
+
+  // Gráfico será renderizado em renderCharts
+}
+
+function renderProjecaoBreakeven(d) {
+  const el = document.getElementById('be-projecao-tabela');
+  if (!el) return;
+  const { numMeses, meses, custoA, custoB, custoC, receitaAcum, coAtivo } = d;
+
+  if (!numMeses) {
+    el.innerHTML = '<div class="empty-state">Adicione receitas para ver projeções.</div>';
+    return;
+  }
+
+  // Receita média mensal recente (últimos 3 meses ou todos se <3)
+  const ultimos = meses.slice(-Math.min(3, numMeses));
+  const receitaMediaMes = ultimos.reduce((s, m) => s + m.liquido, 0) / ultimos.length;
+  // Custo operacional médio mensal (despesas + impostos + parcelas)
+  const custoOpMediaMes = ultimos.reduce((s, m) => s + m.despesas + m.imposto + m.parcelas + (m.parcelaApto || 0), 0) / ultimos.length;
+  const liquidoMes = receitaMediaMes - custoOpMediaMes;
+
+  const projecao = (custoTotal) => {
+    if (receitaAcum >= custoTotal) return { atingido: true, meses: 0, data: 'já atingido' };
+    if (liquidoMes <= 0) return { atingido: false, meses: null, data: 'não atingível neste ritmo' };
+    const falta = custoTotal - receitaAcum;
+    const m = Math.ceil(falta / liquidoMes);
+    // Calcular data
+    const hojeD = new Date();
+    const futuro = new Date(hojeD.getFullYear(), hojeD.getMonth() + m, 1);
+    const dataStr = nomesMesesCurtos()[futuro.getMonth()] + '/' + futuro.getFullYear();
+    return { atingido: false, meses: m, data: dataStr };
+  };
+
+  const pA = projecao(custoA);
+  const pB = projecao(custoB);
+  const pC = coAtivo ? projecao(custoC) : null;
+
+  const linha = (cor, nome, p, desc) => {
+    if (p.atingido) {
+      return `<tr><td><strong style="color:${cor}">${nome}</strong></td>
+        <td colspan="2" style="text-align:center; color:#00A878; font-weight:600">✅ Já atingido</td>
+        <td style="font-size:11px; color:#666">${desc}</td></tr>`;
+    }
+    if (!p.meses) {
+      return `<tr><td><strong style="color:${cor}">${nome}</strong></td>
+        <td colspan="2" style="text-align:center; color:#E61E4D">⚠️ Não atingível</td>
+        <td style="font-size:11px; color:#666">Receita média não cobre custos operacionais. ${desc}</td></tr>`;
+    }
+    const anos = (p.meses / 12).toFixed(1);
+    return `<tr><td><strong style="color:${cor}">${nome}</strong></td>
+      <td style="font-weight:600">${p.meses} ${p.meses===1?'mês':'meses'} (${anos} anos)</td>
+      <td style="color:#666">${p.data}</td>
+      <td style="font-size:11px; color:#666">${desc}</td></tr>`;
+  };
+
+  let html = `<div style="overflow-x:auto"><table style="width:100%; font-size:13px">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:10px 8px">Cenário</th>
+        <th style="text-align:left; padding:10px 8px">Tempo até breakeven</th>
+        <th style="text-align:left; padding:10px 8px">Data estimada</th>
+        <th style="text-align:left; padding:10px 8px">Notas</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${linha('#00A878', '🟢 A — Operacional', pA, 'Quando receita cobre despesas + impostos + parcelas correntes')}
+      ${linha('#0073E6', '🔵 B — Investimento Total', pB, 'Quando recupera aquisição + montagem + custos correntes')}
+      ${pC ? linha('#7B61FF', '🟣 C — + Custo Oportunidade', pC, 'Quando supera o que o dinheiro renderia na Selic') :
+        `<tr><td><strong style="color:#999">🟣 C — + Custo Oportunidade</strong></td><td colspan="2" style="color:#999">Inativo</td><td style="font-size:11px; color:#666">Ative na configuração acima</td></tr>`}
+    </tbody>
+  </table></div>`;
+
+  html += `<div style="margin-top:14px; padding:12px; background:#F0F8FF; border-radius:8px; font-size:12px; color:#222">
+    💡 <strong>Base do cálculo:</strong> média da receita líquida nos últimos ${ultimos.length} ${ultimos.length===1?'mês':'meses'} (${fmt(receitaMediaMes)}/mês), menos custo operacional médio (${fmt(custoOpMediaMes)}/mês) = <strong>${fmt(liquidoMes)}/mês de geração de caixa líquida.</strong>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function popularUICustoOportunidade() {
+  const imv = imovelAtual();
+  if (!imv) return;
+  const co = imv.custoOportunidade || {};
+
+  const elAtivo = document.getElementById('co-ativo');
+  const elTipo = document.getElementById('co-tipo');
+  const elTaxa = document.getElementById('co-taxa-padrao');
+  const elIR = document.getElementById('co-ir');
+  const elAnos = document.getElementById('co-taxas-anos');
+
+  if (elAtivo) elAtivo.checked = !!co.ativo;
+  if (elTipo) elTipo.value = co.tipo || 'selic';
+  if (elTaxa) elTaxa.value = co.taxaPadrao != null ? co.taxaPadrao : 11.75;
+  if (elIR) elIR.checked = !!co.considerarIR;
+
+  // Renderizar lista de taxas por ano
+  if (elAnos) {
+    const anos = Object.keys(co.taxasPorAno || {}).sort();
+    let html = '';
+    if (!anos.length) {
+      html = '<span style="font-size:12px; color:#888">Nenhuma taxa específica cadastrada (usa a padrão para todos os anos).</span>';
+    } else {
+      anos.forEach(ano => {
+        html += `<div style="display:flex; align-items:center; gap:4px; background:white; padding:6px 10px; border-radius:6px; border:1px solid #ddd">
+          <span style="font-size:12px; font-weight:600; color:#666">${ano}:</span>
+          <input type="number" step="0.01" min="0" value="${co.taxasPorAno[ano]}" 
+            onchange="alterarTaxaAno('${ano}', this.value)" 
+            style="width:70px; padding:4px 6px; border:1px solid #ddd; border-radius:4px; font-size:12px">
+          <span style="font-size:11px; color:#666">%</span>
+          <button onclick="removerTaxaAno('${ano}')" style="background:none; border:none; cursor:pointer; color:#E61E4D; padding:2px 4px; font-size:14px">×</button>
+        </div>`;
+      });
+    }
+    elAnos.innerHTML = html;
+  }
+}
+
+function atualizarCustoOportunidade() {
+  const imv = imovelAtual();
+  if (!imv) return;
+  if (!imv.custoOportunidade) imv.custoOportunidade = { tipo:'selic', taxaPadrao:11.75, taxasPorAno:{}, considerarIR:false, ativo:false };
+  imv.custoOportunidade.ativo = document.getElementById('co-ativo').checked;
+  imv.custoOportunidade.tipo = document.getElementById('co-tipo').value;
+  imv.custoOportunidade.taxaPadrao = parseFloat(document.getElementById('co-taxa-padrao').value) || 11.75;
+  imv.custoOportunidade.considerarIR = document.getElementById('co-ir').checked;
+  salvarDados();
+  renderBreakeven();
+  renderCharts();
+}
+
+function adicionarTaxaAno() {
+  const imv = imovelAtual();
+  if (!imv) { alert('Selecione um imóvel no topo.'); return; }
+  if (!imv.custoOportunidade) imv.custoOportunidade = { taxasPorAno: {} };
+  if (!imv.custoOportunidade.taxasPorAno) imv.custoOportunidade.taxasPorAno = {};
+  const anoAtual = new Date().getFullYear();
+  const ano = prompt('Ano (4 dígitos):', anoAtual);
+  if (!ano || !/^\d{4}$/.test(ano)) return;
+  const taxa = prompt(`Taxa anual (%) para ${ano}:`, imv.custoOportunidade.taxaPadrao || 11.75);
+  if (taxa === null) return;
+  const t = parseFloat(taxa.replace(',', '.'));
+  if (isNaN(t) || t < 0) { alert('Taxa inválida.'); return; }
+  imv.custoOportunidade.taxasPorAno[ano] = t;
+  salvarDados();
+  popularUICustoOportunidade();
+  renderBreakeven();
+  renderCharts();
+}
+
+function alterarTaxaAno(ano, valor) {
+  const imv = imovelAtual();
+  if (!imv || !imv.custoOportunidade || !imv.custoOportunidade.taxasPorAno) return;
+  const t = parseFloat(valor);
+  if (isNaN(t) || t < 0) return;
+  imv.custoOportunidade.taxasPorAno[ano] = t;
+  salvarDados();
+  renderBreakeven();
+  renderCharts();
+}
+
+function removerTaxaAno(ano) {
+  const imv = imovelAtual();
+  if (!imv || !imv.custoOportunidade || !imv.custoOportunidade.taxasPorAno) return;
+  delete imv.custoOportunidade.taxasPorAno[ano];
+  salvarDados();
+  popularUICustoOportunidade();
+  renderBreakeven();
+  renderCharts();
 }
 
 function projecaoBreakeven(custoTotal, receitaAtual, receitaMediaMes, despesaMensal) {
-  const liquidoMes = receitaMediaMes - despesaMensal;
-  if (liquidoMes <= 0) return '⚠️ Receita média atual <strong>não cobre</strong> as despesas mensais. Breakeven não atingível neste ritmo.';
-  const falta = custoTotal - receitaAtual;
-  if (falta <= 0) return '✅ Já no positivo!';
-  const mesesRestantes = Math.ceil(falta / liquidoMes);
-  return `Faltam aprox. <strong>${mesesRestantes} ${mesesRestantes===1?'mês':'meses'}</strong> para o breakeven (no ritmo atual).`;
+  // mantida para compat caso ainda chame
+  return '';
 }
 
 // ==================== IMPOSTOS ====================
@@ -3802,39 +4429,94 @@ function renderCharts() {
     });
   }
 
-  // Breakeven evolução
+  // Breakeven evolução: 3 cenários
   const ctx3 = document.getElementById('chartBreakeven');
   if (ctx3) {
     if (charts.be) charts.be.destroy();
     const investTotal = getInvestimentoFiltrado().reduce((s,i) => s + i.valor, 0);
+    const aquisicaoTotal = totalAquisicaoFiltrada();
+    const imv = imovelAtual();
+    const coAtivo = imv && imv.custoOportunidade && imv.custoOportunidade.ativo;
 
     const labels = meses.map(m => nomeMes(m.mes));
     let acumReceita = 0;
-    let acumCustoSemApto = investTotal;
-    let acumCustoComApto = investTotal;
-    const dataReceita = [], dataCusto1 = [], dataCusto2 = [];
+    let acumCustoA = 0; // só operacional
+    let acumCustoB = aquisicaoTotal + investTotal; // tudo
+    let acumDeltaCO = 0; // delta acumulado de custo de oportunidade
+    const dataReceita = [], dataCustoA = [], dataCustoB = [], dataCustoC = [];
+
+    // Para o delta CO: corrigir aquisição e investimento inicial até cada mês
+    // Pre-computar o valor original dos lançamentos com data:
+    const lancamentosIniciais = [];
+    getImoveisAtivos().forEach(im => {
+      (im.aquisicao || []).forEach(g => {
+        if (g.data && g.valor) lancamentosIniciais.push({ data: g.data, valor: g.valor });
+      });
+    });
+    getInvestimentoFiltrado().forEach(item => {
+      const quando = parseQuandoCompra(item.quando);
+      let mesIniDefault = '2026-04';
+      if (item.imovelId) {
+        const im = dados.imoveis.find(i => i.id === item.imovelId);
+        if (im && im.mesInicioOperacao) mesIniDefault = im.mesInicioOperacao;
+      }
+      const baseM = quando || mesIniDefault;
+      lancamentosIniciais.push({ data: baseM + '-15', valor: item.valor || 0 });
+    });
+
     meses.forEach(m => {
       acumReceita += m.liquido;
-      acumCustoSemApto += m.despesas + m.parcelas + m.imposto;
-      acumCustoComApto += m.despesas + m.parcelas + m.imposto + (m.parcelaApto || 0);
+      const custoOpMes = m.despesas + m.parcelas + m.imposto + (m.parcelaApto || 0);
+      acumCustoA += custoOpMes;
+      acumCustoB += custoOpMes;
       dataReceita.push(acumReceita);
-      dataCusto1.push(acumCustoSemApto);
-      dataCusto2.push(acumCustoComApto);
+      dataCustoA.push(acumCustoA);
+      dataCustoB.push(acumCustoB);
+      // Cenário C
+      if (coAtivo) {
+        const refDate = m.mes + '-15';
+        // Recalcular delta acumulado para esse mês
+        let deltaAcum = 0;
+        lancamentosIniciais.forEach(l => {
+          if (l.data >= refDate) return;
+          const futuro = corrigirMonetariamente(l.valor, l.data, refDate);
+          deltaAcum += (futuro - l.valor);
+        });
+        // Custos operacionais correntes — corrigir cada mês até o atual
+        meses.forEach(mAnt => {
+          if (mAnt.mes >= m.mes) return;
+          const valorMes = mAnt.despesas + mAnt.imposto + mAnt.parcelas + (mAnt.parcelaApto || 0);
+          const futuro = corrigirMonetariamente(valorMes, mAnt.mes + '-15', refDate);
+          deltaAcum += (futuro - valorMes);
+        });
+        dataCustoC.push(acumCustoB + deltaAcum);
+      } else {
+        dataCustoC.push(null);
+      }
     });
+
+    const datasets = [
+      { label: '💰 Receita acumulada', data: dataReceita, borderColor: '#00A878', backgroundColor: 'rgba(0,168,120,0.1)', fill: true, tension: 0.3, borderWidth: 3, pointRadius: 4 },
+      { label: '🟢 Cenário A (operacional)', data: dataCustoA, borderColor: '#FF8800', backgroundColor: 'transparent', borderDash: [4,4], tension: 0.3, borderWidth: 2 },
+      { label: '🔵 Cenário B (invest. total)', data: dataCustoB, borderColor: '#E61E4D', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 }
+    ];
+    if (coAtivo) {
+      datasets.push({ label: '🟣 Cenário C (+ Selic)', data: dataCustoC, borderColor: '#7B61FF', backgroundColor: 'transparent', borderDash: [2,3], tension: 0.3, borderWidth: 2 });
+    }
 
     charts.be = new Chart(ctx3, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Receita acumulada', data: dataReceita, borderColor: '#00A878', backgroundColor: 'rgba(0,168,120,0.1)', fill: true, tension: 0.3 },
-          { label: 'Custo s/ apto', data: dataCusto1, borderColor: '#FF8800', backgroundColor: 'transparent', borderDash: [5,5], tension: 0.3 },
-          { label: 'Custo c/ apto', data: dataCusto2, borderColor: '#E61E4D', backgroundColor: 'transparent', tension: 0.3 }
-        ]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (c) => c.dataset.label + ': R$ ' + (c.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            }
+          }
+        },
         scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
       }
     });
@@ -4695,6 +5377,7 @@ function renderTudo() {
 
   renderReservas();
   renderInvestimento();
+  renderAquisicao();
   renderCronograma();
   renderDespesas();
   renderResumoMensal();
