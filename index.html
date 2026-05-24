@@ -908,8 +908,41 @@
       Cadastre aqui as despesas correntes do imóvel. <strong>Por padrão</strong>, o sistema considera apenas despesas a partir de <strong>abril/2026</strong> (início da operação como Airbnb), conforme você indicou.
     </div>
 
+    <!-- KPIs de controle de pagamento -->
+    <div class="grid grid-4">
+      <div class="card" style="border-left:4px solid #E61E4D">
+        <h3>⏰ A Pagar (este mês)</h3>
+        <div class="value" id="desp-kpi-a-pagar-mes" style="color:#E61E4D">R$ 0,00</div>
+        <div class="sub" id="desp-kpi-a-pagar-mes-sub">0 contas pendentes</div>
+      </div>
+      <div class="card" style="border-left:4px solid #FF8800">
+        <h3>📋 A Pagar (total)</h3>
+        <div class="value" id="desp-kpi-a-pagar-total" style="color:#FF8800">R$ 0,00</div>
+        <div class="sub" id="desp-kpi-a-pagar-total-sub">Todos os meses</div>
+      </div>
+      <div class="card" style="border-left:4px solid #00A878">
+        <h3>✅ Já Pago (este mês)</h3>
+        <div class="value" id="desp-kpi-pago-mes" style="color:#00A878">R$ 0,00</div>
+        <div class="sub" id="desp-kpi-pago-mes-sub">0 contas quitadas</div>
+      </div>
+      <div class="card" style="border-left:4px solid #0073E6">
+        <h3>📊 Progresso do Mês</h3>
+        <div class="value" id="desp-kpi-progresso" style="color:#0073E6">0%</div>
+        <div class="sub" id="desp-kpi-progresso-sub">Pago / total do mês</div>
+      </div>
+    </div>
+
+    <!-- Próximas a vencer -->
+    <div class="card" style="margin-top:16px; border:1px solid #FF8800; background:#FFF8F0">
+      <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:10px">
+        <span>⚠️ Contas pendentes — atenção</span>
+        <span class="pill pill-orange" style="background:#FF880022; color:#FF8800" id="desp-pendentes-badge">0</span>
+      </h3>
+      <div id="desp-pendentes-lista" style="display:flex; flex-direction:column; gap:6px"></div>
+    </div>
+
     <!-- Resumo das parcelas do investimento (informativo, não editável) -->
-    <div class="card" style="background:#fafafa; border:1px solid #ddd">
+    <div class="card" style="margin-top:16px; background:#fafafa; border:1px solid #ddd">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
         <h2 style="font-size:16px; font-weight:600">💜 Parcelas do Investimento Inicial (informativo)</h2>
         <span class="pill pill-blue">Calculado automaticamente</span>
@@ -952,27 +985,37 @@
           </select>
         </div>
         <div><label class="label">Descrição</label><input type="text" id="desp-descricao" placeholder="Detalhe (opcional)"></div>
-        <div><label class="label">Mês/Ano</label><input type="month" id="desp-mes"></div>
-        <div><label class="label">Valor (R$)</label><input type="number" id="desp-valor" step="0.01" placeholder="0,00"></div>
+        <div><label class="label">Data de vencimento *</label><input type="date" id="desp-vencimento"></div>
+        <div><label class="label">Valor (R$) *</label><input type="number" id="desp-valor" step="0.01" placeholder="0,00"></div>
         <div><button class="btn btn-primary" onclick="adicionarDespesa()">Adicionar</button></div>
       </div>
       <div style="margin-top:8px; font-size:12px; color:#888">
-        💡 Marque abaixo apenas se a despesa <strong>se repete todo mês com o mesmo valor</strong> (ex: condomínio, internet). Para parcela do apto SAC ou contas variáveis, cadastre cada mês separadamente.
+        💡 <strong>Data obrigatória.</strong> Marque abaixo se a despesa se repete todo mês (ex: condomínio dia 10). O sistema gera as próximas 12 ocorrências automaticamente.
       </div>
-      <div style="margin-top:8px"><label style="font-size:13px"><input type="checkbox" id="desp-recorrente"> Repetir mensalmente por 12 meses (mesmo valor)</label></div>
+      <div style="margin-top:8px"><label style="font-size:13px"><input type="checkbox" id="desp-recorrente"> Repetir mensalmente por 12 meses (mesmo valor e mesmo dia de vencimento)</label></div>
+      <input type="hidden" id="desp-mes">
     </div>
 
     <div class="card" style="margin-top:16px">
       <div class="header-actions">
         <h2>📉 Despesas cadastradas</h2>
-        <select id="filtro-mes-despesa" onchange="renderDespesas()" style="width:auto">
-          <option value="">Todos os meses</option>
-        </select>
+        <div style="display:flex; gap:8px; align-items:center">
+          <select id="filtro-status-despesa" onchange="renderDespesas()" style="width:auto; padding:6px 10px">
+            <option value="">Todos os status</option>
+            <option value="atrasada">🔴 Só atrasadas</option>
+            <option value="urgente">🟠 Atrasadas + vence em ≤3d</option>
+            <option value="pendente">⏰ Só pendentes</option>
+            <option value="pago">✅ Só pagas</option>
+          </select>
+          <select id="filtro-mes-despesa" onchange="renderDespesas()" style="width:auto; padding:6px 10px">
+            <option value="">Todos os meses</option>
+          </select>
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table id="tabela-despesas">
           <thead>
-            <tr><th>Mês</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr>
+            <tr><th>Vencimento</th><th>Mês ref.</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Ações</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -1529,6 +1572,17 @@ function garantirEstruturaDados() {
     dados.investimento.forEach(i => { if (!i.imovelId) i.imovelId = primeiro; });
     dados.despesas.forEach(d => { if (!d.imovelId) d.imovelId = primeiro; });
   }
+
+  // === Migração: dataVencimento obrigatória ===
+  // Despesas antigas só têm campo 'mes' (YYYY-MM). Cria dataVencimento como dia 10 do mês.
+  dados.despesas.forEach(d => {
+    if (!d.dataVencimento && d.mes) {
+      const [a, m] = d.mes.split('-');
+      d.dataVencimento = `${a}-${m}-10`;
+    }
+    // Garante que o status existe
+    if (!d.status) d.status = 'pendente';
+  });
 
   // Filtros ativos (não persistem, só na sessão)
   // dados.filtroImovelId: id do imóvel selecionado ou 'todos'
@@ -2744,20 +2798,28 @@ function editarDespesa(id) {
   const categorias = ['Parcela Apto', 'Condomínio', 'Energia', 'Internet', 'IPTU', 'Água', 'Limpeza', 'Manutenção', 'Outros'];
   const opcoes = categorias.map(c => ({ valor: c, label: c }));
 
+  // Se não tem data de vencimento, sugere dia 10 do mês
+  const vencSugerido = d.dataVencimento || (d.mes ? d.mes + '-10' : '');
+
   abrirModalEdicao(
     `📉 Editar Despesa`,
     [
       { tipo: 'row', campos: [
-        { id: 'mes', label: 'Mês (YYYY-MM)', valor: d.mes, placeholder: '2026-04' },
+        { id: 'dataVencimento', label: 'Data de vencimento *', valor: vencSugerido, tipo: 'date' },
         { id: 'categoria', label: 'Categoria', valor: d.categoria, tipo: 'select', opcoes }
       ]},
       { id: 'descricao', label: 'Descrição', valor: d.descricao || '', placeholder: 'Detalhe (opcional)' },
-      { id: 'valor', label: 'Valor (R$)', valor: d.valor, tipo: 'number', step: '0.01', min: '0' }
+      { tipo: 'row', campos: [
+        { id: 'valor', label: 'Valor (R$)', valor: d.valor, tipo: 'number', step: '0.01', min: '0' },
+        { id: 'status', label: 'Status pagamento', valor: d.status || 'pendente', tipo: 'select', opcoes: [
+          { valor: 'pendente', label: '⏰ A pagar' },
+          { valor: 'pago', label: '✅ Pago' }
+        ]}
+      ]}
     ],
     (v) => {
-      const mesNorm = normalizarMes(v.mes);
-      if (!mesNorm || !/^\d{4}-\d{2}$/.test(mesNorm)) {
-        alert('Formato de mês inválido. Use YYYY-MM (ex: 2026-04) ou MM/AAAA.');
+      if (!v.dataVencimento || !/^\d{4}-\d{2}-\d{2}$/.test(v.dataVencimento)) {
+        alert('Data de vencimento inválida. Use o seletor de data.');
         return false;
       }
       const valor = parseFloat(v.valor);
@@ -2765,10 +2827,23 @@ function editarDespesa(id) {
         alert('Valor inválido.');
         return false;
       }
-      d.mes = mesNorm;
+      d.dataVencimento = v.dataVencimento;
+      // Mês de referência: derivado da data de vencimento
+      d.mes = v.dataVencimento.slice(0, 7);
       d.categoria = v.categoria;
       d.descricao = v.descricao || '';
       d.valor = valor;
+      // Status
+      const statusAntigo = d.status || 'pendente';
+      const statusNovo = v.status || 'pendente';
+      if (statusAntigo !== statusNovo) {
+        d.status = statusNovo;
+        if (statusNovo === 'pago') {
+          d.dataPagamento = new Date().toISOString().slice(0, 10);
+        } else {
+          delete d.dataPagamento;
+        }
+      }
       salvarDados();
       renderTudo();
     }
@@ -3177,35 +3252,48 @@ function exportarCronograma() {
 // ==================== DESPESAS ====================
 function adicionarDespesa() {
   const recorrente = document.getElementById('desp-recorrente').checked;
-  const baseMes = normalizarMes(document.getElementById('desp-mes').value);
+  const vencimentoBase = document.getElementById('desp-vencimento').value;
   const valor = parseFloat(document.getElementById('desp-valor').value) || 0;
   const cat = document.getElementById('desp-categoria').value;
   const desc = document.getElementById('desp-descricao').value;
   const imvId = imovelIdParaNovo();
 
-  if (!baseMes || !valor) { alert('Preencha mês e valor'); return; }
-  if (!/^\d{4}-\d{2}$/.test(baseMes)) {
-    alert('Formato de mês inválido. Use YYYY-MM (ex: 2026-06) ou MM/AAAA (ex: 06/2026).');
+  if (!vencimentoBase) { alert('Preencha a data de vencimento (obrigatória).'); return; }
+  if (!valor || valor <= 0) { alert('Preencha um valor maior que zero.'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimentoBase)) {
+    alert('Formato de data inválido. Use o seletor de data.');
     return;
   }
 
+  // Derivar o mês de referência (YYYY-MM) a partir da data de vencimento
+  const mesBase = vencimentoBase.slice(0, 7);
+
   if (recorrente) {
-    let [a, m] = baseMes.split('-').map(Number);
-    while (a < 2030 || (a === 2030 && m <= 12)) {
-      if (a > 2030) break;
+    // Gera 12 meses (incluindo o atual)
+    let [a, m, d] = vencimentoBase.split('-').map(Number);
+    for (let i = 0; i < 12; i++) {
       const ym = a + '-' + String(m).padStart(2,'0');
-      dados.despesas.push({ id: uid(), imovelId: imvId, mes: ym, categoria: cat, descricao: desc, valor: valor });
+      // Garantir que o dia exista no mês (ex: dia 31 vira último dia em fev)
+      const ultimoDia = new Date(a, m, 0).getDate();
+      const dia = Math.min(d, ultimoDia);
+      const dataVenc = `${a}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      dados.despesas.push({
+        id: uid(), imovelId: imvId, mes: ym, categoria: cat, descricao: desc,
+        valor: valor, status: 'pendente', dataVencimento: dataVenc
+      });
       m++;
       if (m > 12) { m = 1; a++; }
-      // limita a 12 meses para frente
-      if (dados.despesas.filter(d=>d.descricao===desc && d.categoria===cat && d.imovelId===imvId).length >= 12) break;
     }
   } else {
-    dados.despesas.push({ id: uid(), imovelId: imvId, mes: baseMes, categoria: cat, descricao: desc, valor: valor });
+    dados.despesas.push({
+      id: uid(), imovelId: imvId, mes: mesBase, categoria: cat, descricao: desc,
+      valor: valor, status: 'pendente', dataVencimento: vencimentoBase
+    });
   }
 
   document.getElementById('desp-descricao').value = '';
   document.getElementById('desp-valor').value = '';
+  document.getElementById('desp-vencimento').value = '';
   document.getElementById('desp-recorrente').checked = false;
   salvarDados();
   renderTudo();
@@ -3218,34 +3306,196 @@ function removerDespesa(id) {
   renderTudo();
 }
 
+// Calcula o status visual de uma despesa baseado na data de vencimento
+// Retorna: { codigo: 'pago'|'atrasada'|'urgente'|'pendente', label, corFundo, corTexto, prioridade }
+function statusDespesa(d) {
+  if (d.status === 'pago') {
+    return {
+      codigo: 'pago',
+      label: '✓ Pago',
+      corFundo: '#DCFCE7',
+      corTexto: '#166534',
+      prioridade: 3
+    };
+  }
+  // Não pago — calcular urgência pela data de vencimento
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const venc = d.dataVencimento ? new Date(d.dataVencimento + 'T00:00:00') : null;
+
+  if (!venc || isNaN(venc.getTime())) {
+    return {
+      codigo: 'pendente',
+      label: 'A pagar',
+      corFundo: '#FEF3C7',
+      corTexto: '#92400E',
+      prioridade: 2
+    };
+  }
+
+  const diffDias = Math.floor((venc - hoje) / (24 * 3600 * 1000));
+
+  if (diffDias < 0) {
+    return {
+      codigo: 'atrasada',
+      label: `⏰ Atrasada (${Math.abs(diffDias)}d)`,
+      corFundo: '#FEE2E2',
+      corTexto: '#991B1B',
+      prioridade: 0
+    };
+  }
+  if (diffDias <= 3) {
+    return {
+      codigo: 'urgente',
+      label: diffDias === 0 ? '🔥 Vence hoje' : `🔥 Vence em ${diffDias}d`,
+      corFundo: '#FFEDD5',
+      corTexto: '#9A3412',
+      prioridade: 1
+    };
+  }
+  return {
+    codigo: 'pendente',
+    label: `A pagar (${diffDias}d)`,
+    corFundo: '#FEF3C7',
+    corTexto: '#92400E',
+    prioridade: 2
+  };
+}
+
 function renderDespesas() {
   const tbody = document.querySelector('#tabela-despesas tbody');
-  const filtro = document.getElementById('filtro-mes-despesa').value;
-  const filtroSel = document.getElementById('filtro-mes-despesa');
+  const filtroMesEl = document.getElementById('filtro-mes-despesa');
+  const filtroStatusEl = document.getElementById('filtro-status-despesa');
+  const filtro = filtroMesEl.value;
+  const filtroStatus = filtroStatusEl ? filtroStatusEl.value : '';
   const despF = getDespesasFiltradas();
   const mostraImovel = dados.filtroImovelId === 'todos' || dados.imoveis.length > 1;
-  // popular filtros
+
+  // popular filtro de meses
   const meses = [...new Set(despF.map(d => d.mes))].sort();
-  const valorAtual = filtroSel.value;
-  filtroSel.innerHTML = '<option value="">Todos os meses</option>';
-  meses.forEach(m => filtroSel.innerHTML += `<option value="${m}" ${m===valorAtual?'selected':''}>${nomeMes(m)}</option>`);
+  const valorAtual = filtroMesEl.value;
+  filtroMesEl.innerHTML = '<option value="">Todos os meses</option>';
+  meses.forEach(m => filtroMesEl.innerHTML += `<option value="${m}" ${m===valorAtual?'selected':''}>${nomeMes(m)}</option>`);
 
-  let lista = despF.slice().sort((a,b) => a.mes.localeCompare(b.mes));
+  // ========== KPIs ==========
+  const hojeMes = mesAtualYM();
+  const despMes = despF.filter(d => d.mes === hojeMes);
+  const totalMes = despMes.reduce((s, d) => s + (d.valor || 0), 0);
+  const pagasMes = despMes.filter(d => d.status === 'pago');
+  const pendentesMes = despMes.filter(d => d.status !== 'pago');
+  const totalPagoMes = pagasMes.reduce((s, d) => s + d.valor, 0);
+  const totalPendMes = pendentesMes.reduce((s, d) => s + d.valor, 0);
+
+  // Total a pagar (todos os meses) — com info de urgência
+  const todasPendentes = despF.filter(d => d.status !== 'pago');
+  const totalPendGeral = todasPendentes.reduce((s, d) => s + d.valor, 0);
+  const atrasadas = todasPendentes.filter(d => statusDespesa(d).codigo === 'atrasada');
+  const urgentes = todasPendentes.filter(d => statusDespesa(d).codigo === 'urgente');
+  const totalUrgente = atrasadas.reduce((s, d) => s + d.valor, 0) + urgentes.reduce((s, d) => s + d.valor, 0);
+  const qtdUrgente = atrasadas.length + urgentes.length;
+
+  const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  // Atualiza KPI "A Pagar este mês" para mostrar urgência se houver
+  setText('desp-kpi-a-pagar-mes', fmt(totalPendMes));
+  setText('desp-kpi-a-pagar-mes-sub', `${pendentesMes.length} ${pendentesMes.length===1?'conta pendente':'contas pendentes'}`);
+  setText('desp-kpi-a-pagar-total', fmt(totalPendGeral));
+  if (qtdUrgente > 0) {
+    setText('desp-kpi-a-pagar-total-sub', `⚠️ ${qtdUrgente} urgente(s): ${fmt(totalUrgente)}`);
+  } else {
+    setText('desp-kpi-a-pagar-total-sub', `${todasPendentes.length} ${todasPendentes.length===1?'conta':'contas'} em ${[...new Set(todasPendentes.map(d=>d.mes))].length} mês(es)`);
+  }
+  setText('desp-kpi-pago-mes', fmt(totalPagoMes));
+  setText('desp-kpi-pago-mes-sub', `${pagasMes.length} ${pagasMes.length===1?'conta quitada':'contas quitadas'}`);
+
+  const pctMes = totalMes > 0 ? (totalPagoMes / totalMes * 100) : 0;
+  setText('desp-kpi-progresso', pctMes.toFixed(0) + '%');
+  setText('desp-kpi-progresso-sub', totalMes > 0 ? `${fmt(totalPagoMes)} de ${fmt(totalMes)}` : 'Sem despesas este mês');
+  const elProg = document.getElementById('desp-kpi-progresso');
+  if (elProg) elProg.style.color = pctMes >= 100 ? '#00A878' : pctMes >= 50 ? '#FF8800' : '#E61E4D';
+
+  // ========== Lista de pendentes (ordenadas por urgência/vencimento) ==========
+  const elPend = document.getElementById('desp-pendentes-lista');
+  const elBadge = document.getElementById('desp-pendentes-badge');
+  if (elPend && elBadge) {
+    // Ordena por: prioridade do status (0=atrasada, 1=urgente, 2=pendente) e depois data de vencimento
+    const ordenadas = [...todasPendentes].sort((a, b) => {
+      const sa = statusDespesa(a);
+      const sb = statusDespesa(b);
+      if (sa.prioridade !== sb.prioridade) return sa.prioridade - sb.prioridade;
+      return (a.dataVencimento || a.mes || '').localeCompare(b.dataVencimento || b.mes || '');
+    });
+    elBadge.textContent = ordenadas.length;
+    if (!ordenadas.length) {
+      elPend.innerHTML = '<div style="font-size:13px; color:#00A878; padding:6px 0">✅ Tudo em dia! Nenhuma despesa pendente.</div>';
+    } else {
+      const visivel = ordenadas.slice(0, 8);
+      let html = '';
+      visivel.forEach(d => {
+        const st = statusDespesa(d);
+        const corBorda = st.codigo === 'atrasada' ? '#E61E4D'
+                       : st.codigo === 'urgente' ? '#FF8800'
+                       : '#999';
+        const tagStatus = `<span class="pill" style="background:${st.corFundo}; color:${st.corTexto}; margin-left:6px; font-size:10px">${st.label}</span>`;
+        const imv = dados.imoveis.find(i => i.id === d.imovelId);
+        const tagImv = mostraImovel && imv
+          ? `<span class="pill" style="background:${imv.cor||'#FF385C'}22; color:${imv.cor||'#FF385C'}; margin-left:6px; font-size:10px">${imv.icone||'🏠'} ${imv.nome}</span>` : '';
+        const vencFormatado = d.dataVencimento ? formatarDataBR(d.dataVencimento) : nomeMes(d.mes);
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:white; border-left:3px solid ${corBorda}; border-radius:4px">
+          <div style="font-size:13px">
+            <strong>Venc. ${vencFormatado}</strong> · ${d.categoria}${d.descricao ? ' — ' + d.descricao : ''}${tagStatus}${tagImv}
+          </div>
+          <div style="display:flex; gap:8px; align-items:center">
+            <strong style="color:#E61E4D">${fmt(d.valor)}</strong>
+            <button class="btn btn-sm" onclick="toggleStatusDespesa('${d.id}')" style="background:#DCFCE7; color:#166534; padding:4px 10px">✓ Marcar pago</button>
+          </div>
+        </div>`;
+      });
+      if (ordenadas.length > 8) {
+        html += `<div style="font-size:12px; color:#888; padding:6px 0; text-align:center">+ ${ordenadas.length - 8} despesa(s) pendente(s) mais — veja na tabela abaixo</div>`;
+      }
+      elPend.innerHTML = html;
+    }
+  }
+
+  // ========== Tabela completa ==========
+  let lista = despF.slice().sort((a, b) => (a.dataVencimento || a.mes || '').localeCompare(b.dataVencimento || b.mes || ''));
   if (filtro) lista = lista.filter(d => d.mes === filtro);
+  if (filtroStatus) lista = lista.filter(d => {
+    if (filtroStatus === 'pago') return d.status === 'pago';
+    if (filtroStatus === 'pendente') {
+      const st = statusDespesa(d).codigo;
+      return st === 'atrasada' || st === 'urgente' || st === 'pendente';
+    }
+    if (filtroStatus === 'atrasada') return statusDespesa(d).codigo === 'atrasada';
+    if (filtroStatus === 'urgente') {
+      const st = statusDespesa(d).codigo;
+      return st === 'urgente' || st === 'atrasada';
+    }
+    return true;
+  });
 
+  const colspan = mostraImovel ? 8 : 7;
   tbody.innerHTML = '';
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="${mostraImovel ? 6 : 5}" class="empty-state">Nenhuma despesa neste filtro.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhuma despesa neste filtro.</td></tr>`;
   } else {
     lista.forEach(d => {
       const imv = dados.imoveis.find(i => i.id === d.imovelId);
       const colImovel = mostraImovel
         ? `<td>${imv ? `<span class="pill" style="background:${imv.cor||'#FF385C'}33; color:${imv.cor||'#FF385C'}">${imv.icone||'🏠'} ${imv.nome}</span>` : '—'}</td>`
         : '';
+      const st = statusDespesa(d);
+      const titulo = d.status === 'pago' && d.dataPagamento ? `Pago em ${d.dataPagamento}` : 'Clique para alternar';
+      const statusBtn = `<button class="btn btn-sm" onclick="toggleStatusDespesa('${d.id}')" style="background:${st.corFundo}; color:${st.corTexto}" title="${titulo}">${st.label}</button>`;
+      const vencCol = d.dataVencimento ? formatarDataBR(d.dataVencimento) : '—';
       tbody.innerHTML += `<tr>
         ${colImovel}
-        <td>${nomeMes(d.mes)}</td><td><span class="pill pill-gray">${d.categoria}</span></td>
-        <td>${d.descricao||'-'}</td><td>${fmt(d.valor)}</td>
+        <td>${vencCol}</td>
+        <td>${nomeMes(d.mes)}</td>
+        <td><span class="pill pill-gray">${d.categoria}</span></td>
+        <td>${d.descricao||'-'}</td>
+        <td>${fmt(d.valor)}</td>
+        <td>${statusBtn}</td>
         <td>
           <button class="btn-edit" onclick="editarDespesa('${d.id}')" title="Editar">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="removerDespesa('${d.id}')" title="Remover">×</button>
@@ -3256,6 +3506,29 @@ function renderDespesas() {
 
   // Tabela informativa de parcelas do investimento
   renderTabelaParcelasInvest();
+}
+
+function formatarDataBR(iso) {
+  // YYYY-MM-DD → DD/MM/YYYY
+  if (!iso || typeof iso !== 'string') return '—';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+function toggleStatusDespesa(id) {
+  const d = dados.despesas.find(x => x.id === id);
+  if (!d) return;
+  const atual = d.status || 'pendente';
+  if (atual === 'pago') {
+    d.status = 'pendente';
+    delete d.dataPagamento;
+  } else {
+    d.status = 'pago';
+    d.dataPagamento = new Date().toISOString().slice(0, 10);
+  }
+  salvarDados();
+  renderTudo();
 }
 
 function renderTabelaParcelasInvest() {
