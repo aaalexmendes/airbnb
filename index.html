@@ -3429,7 +3429,22 @@ function renderDespesas() {
       elPend.innerHTML = '<div style="font-size:13px; color:#00A878; padding:6px 0">✅ Tudo em dia! Nenhuma despesa pendente.</div>';
     } else {
       const visivel = ordenadas.slice(0, 8);
-      let html = '';
+      // Contar quantas são do mês atual vs futuras (no array visível)
+      const doMesAtual = visivel.filter(d => (d.mes || '') === hojeMes).length;
+      const futuras = visivel.length - doMesAtual;
+
+      // Legenda discreta no topo
+      let html = `<div style="display:flex; gap:14px; align-items:center; font-size:11px; color:#666; padding:4px 2px 10px 2px; flex-wrap:wrap">
+        <div style="display:flex; align-items:center; gap:6px">
+          <span style="display:inline-block; width:14px; height:14px; background:#EFF6FF; border-left:3px solid #0073E6; border-radius:2px"></span>
+          <span><strong>Mês atual</strong> (${doMesAtual})</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px">
+          <span style="display:inline-block; width:14px; height:14px; background:white; border:1px solid #e0e0e0; border-radius:2px"></span>
+          <span><strong>Próximos meses</strong> (${futuras})</span>
+        </div>
+      </div>`;
+
       visivel.forEach(d => {
         const st = statusDespesa(d);
         const corBorda = st.codigo === 'atrasada' ? '#E61E4D'
@@ -3440,9 +3455,18 @@ function renderDespesas() {
         const tagImv = mostraImovel && imv
           ? `<span class="pill" style="background:${imv.cor||'#FF385C'}22; color:${imv.cor||'#FF385C'}; margin-left:6px; font-size:10px">${imv.icone||'🏠'} ${imv.nome}</span>` : '';
         const vencFormatado = d.dataVencimento ? formatarDataBR(d.dataVencimento) : nomeMes(d.mes);
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:white; border-left:3px solid ${corBorda}; border-radius:4px">
+
+        // === Destaque: mês atual fica com fundo azulado ===
+        const ehMesAtual = (d.mes || '') === hojeMes;
+        const corFundo = ehMesAtual ? '#EFF6FF' : 'white';
+        const bordaExtra = ehMesAtual ? '; border:1px solid #BFDBFE; border-left:3px solid ' + corBorda : '; border-left:3px solid ' + corBorda;
+        const tagMesAtual = ehMesAtual
+          ? `<span class="pill" style="background:#0073E622; color:#0073E6; margin-left:6px; font-size:10px; font-weight:600">📍 este mês</span>`
+          : '';
+
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:${corFundo}${bordaExtra}; border-radius:4px">
           <div style="font-size:13px">
-            <strong>Venc. ${vencFormatado}</strong> · ${d.categoria}${d.descricao ? ' — ' + d.descricao : ''}${tagStatus}${tagImv}
+            <strong>Venc. ${vencFormatado}</strong> · ${d.categoria}${d.descricao ? ' — ' + d.descricao : ''}${tagMesAtual}${tagStatus}${tagImv}
           </div>
           <div style="display:flex; gap:8px; align-items:center">
             <strong style="color:#E61E4D">${fmt(d.valor)}</strong>
@@ -3488,7 +3512,12 @@ function renderDespesas() {
       const titulo = d.status === 'pago' && d.dataPagamento ? `Pago em ${d.dataPagamento}` : 'Clique para alternar';
       const statusBtn = `<button class="btn btn-sm" onclick="toggleStatusDespesa('${d.id}')" style="background:${st.corFundo}; color:${st.corTexto}" title="${titulo}">${st.label}</button>`;
       const vencCol = d.dataVencimento ? formatarDataBR(d.dataVencimento) : '—';
-      tbody.innerHTML += `<tr>
+
+      // Linha do mês atual ganha fundo azulado
+      const ehMesAtual = (d.mes || '') === hojeMes;
+      const corLinha = ehMesAtual && d.status !== 'pago' ? ' style="background:#EFF6FF"' : '';
+
+      tbody.innerHTML += `<tr${corLinha}>
         ${colImovel}
         <td>${vencCol}</td>
         <td>${nomeMes(d.mes)}</td>
