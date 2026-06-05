@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Airbnb - Brasília Premium</title>
+<title>AnfitriãoPro — Dashboard de Gestão para Anfitriões Airbnb</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -403,6 +403,38 @@
   .cal-lista-wrapper { display: block; }
 }
 
+/* Ícone de ajuda (ⓘ) nos cards + popover */
+.ajuda-icone {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; min-width: 16px; border-radius: 50%;
+  background: rgba(0,0,0,0.12); color: #555;
+  font-size: 11px; font-weight: 700; font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif; line-height: 1;
+  cursor: pointer; user-select: none; vertical-align: middle;
+  transition: background .15s, color .15s;
+}
+.ajuda-icone:hover { background: #FF385C; color: #fff; }
+.card.green .ajuda-icone, .card.red .ajuda-icone, .card.blue .ajuda-icone,
+.card.orange .ajuda-icone, .card.purple .ajuda-icone {
+  background: rgba(255,255,255,0.35); color: rgba(255,255,255,0.95);
+}
+.card.green .ajuda-icone:hover, .card.red .ajuda-icone:hover, .card.blue .ajuda-icone:hover,
+.card.orange .ajuda-icone:hover, .card.purple .ajuda-icone:hover {
+  background: #fff; color: #FF385C;
+}
+.ajuda-popover {
+  position: absolute; z-index: 9998; display: none;
+  max-width: 320px; width: max-content;
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  padding: 14px 16px; font-size: 13px; color: #444; line-height: 1.55;
+}
+.ajuda-pop-titulo { font-weight: 700; margin-bottom: 6px; color: #1a1a1a; font-size: 14px; }
+.ajuda-pop-fechar {
+  position: absolute; top: 8px; right: 10px; cursor: pointer; color: #999;
+  font-size: 16px; line-height: 1; border: none; background: none;
+}
+
 </style>
 </head>
 <body>
@@ -459,6 +491,9 @@
     <button class="tab" onclick="showTab('config', this)">⚙️ Configurações</button>
   </div>
 
+  <!-- Aviso de primeiro uso (preenchido por renderBoasVindas) -->
+  <div id="aviso-boas-vindas"></div>
+
   <!-- =================== VISÃO GERAL =================== -->
   <div id="visao-geral" class="content active">
     <!-- Decomposição de receitas: Paga vs Programada -->
@@ -469,6 +504,7 @@
             <h3 style="display:flex; align-items:center; gap:6px">
               ✅ Receita Paga
               <span class="pill pill-green" style="font-size:9px">Já caiu na conta</span>
+              <span class="ajuda-icone" onclick="mostrarAjuda('receita-paga', event)" title="O que é isto?">i</span>
             </h3>
             <div class="value" id="kpi-receita-paga" style="color:#00A878">R$ 0,00</div>
             <div class="sub" id="kpi-receita-paga-sub">0 reservas confirmadas</div>
@@ -485,6 +521,7 @@
             <h3 style="display:flex; align-items:center; gap:6px">
               ⏳ Receita Programada
               <span class="pill pill-blue" style="font-size:9px">A receber</span>
+              <span class="ajuda-icone" onclick="mostrarAjuda('receita-programada', event)" title="O que é isto?">i</span>
             </h3>
             <div class="value" id="kpi-receita-programada" style="color:#0073E6">R$ 0,00</div>
             <div class="sub" id="kpi-receita-programada-sub">0 reservas pendentes</div>
@@ -500,22 +537,22 @@
     <!-- KPIs principais -->
     <div class="grid grid-4">
       <div class="card green">
-        <h3>Receita Líquida</h3>
+        <h3>Receita Líquida <span class="ajuda-icone" onclick="mostrarAjuda('receita-liquida', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-receita">R$ 0,00</div>
         <div class="sub" id="kpi-receita-sub">Após taxas Airbnb</div>
       </div>
       <div class="card red">
-        <h3>Despesas Operacionais</h3>
+        <h3>Despesas Operacionais <span class="ajuda-icone" onclick="mostrarAjuda('despesas', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-despesas">R$ 0,00</div>
         <div class="sub">Condomínio, energia, etc.</div>
       </div>
       <div class="card orange">
-        <h3>Impostos</h3>
+        <h3>Impostos <span class="ajuda-icone" onclick="mostrarAjuda('impostos', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-impostos">R$ 0,00</div>
         <div class="sub" id="kpi-impostos-sub">A pagar / pago</div>
       </div>
       <div class="card purple">
-        <h3>Financiamento</h3>
+        <h3>Financiamento <span class="ajuda-icone" onclick="mostrarAjuda('financiamento', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-financiamento">R$ 0,00</div>
         <div class="sub">Parcelas invest. + apto</div>
       </div>
@@ -523,22 +560,22 @@
 
     <div class="grid grid-4" style="margin-top:16px">
       <div class="card blue">
-        <h3>Lucro Líquido (s/ apto)</h3>
+        <h3>Lucro Líquido (s/ apto) <span class="ajuda-icone" onclick="mostrarAjuda('lucro-sem', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-lucro-sem">R$ 0,00</div>
         <div class="sub">Sem financiamento do apto</div>
       </div>
       <div class="card blue">
-        <h3>Lucro Líquido (c/ apto)</h3>
+        <h3>Lucro Líquido (c/ apto) <span class="ajuda-icone" onclick="mostrarAjuda('lucro-com', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-lucro-com">R$ 0,00</div>
         <div class="sub">Com tudo descontado</div>
       </div>
       <div class="card">
-        <h3>Reservas</h3>
+        <h3>Reservas <span class="ajuda-icone" onclick="mostrarAjuda('reservas', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-reservas">0</div>
         <div class="sub" id="kpi-noites-sub">0 noites · Ticket: R$ 0</div>
       </div>
       <div class="card">
-        <h3>Investimento Total</h3>
+        <h3>Investimento Total <span class="ajuda-icone" onclick="mostrarAjuda('investimento-total', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="kpi-investimento">R$ 0,00</div>
         <div class="sub" id="kpi-investimento-sub">Para montar o Airbnb</div>
       </div>
@@ -879,7 +916,7 @@
     <!-- KPIs Consolidados -->
     <div class="grid grid-4">
       <div class="card" style="border-left:4px solid #FF385C">
-        <h3>💎 Custo TOTAL</h3>
+        <h3>💎 Custo TOTAL <span class="ajuda-icone" onclick="mostrarAjuda('custo-total', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="inv-custo-total" style="color:#FF385C">R$ 0,00</div>
         <div class="sub" id="inv-custo-total-sub">Aquisição + Montagem</div>
       </div>
@@ -889,7 +926,7 @@
         <div class="sub" id="inv-aquisicao-sub">Entrada + taxas + cartório</div>
       </div>
       <div class="card purple">
-        <h3>🔨 Investimento Airbnb</h3>
+        <h3>🔨 Investimento Airbnb <span class="ajuda-icone" onclick="mostrarAjuda('investimento-airbnb', event)" title="O que é isto?">i</span></h3>
         <div class="value" id="inv-total">R$ 0,00</div>
         <div class="sub">Móveis, eletro, decoração</div>
       </div>
@@ -1393,11 +1430,57 @@
       </div>
     </div>
 
+    <!-- Simulação de receitas futuras -->
+    <div class="card" style="margin-top:16px; border:2px solid #7B61FF">
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px">
+        🔮 Simular receitas futuras
+        <span class="ajuda-icone" onclick="mostrarAjuda('simulacao', event)" title="Como funciona?">i</span>
+      </h2>
+      <p style="font-size:12px; color:#666; margin-bottom:14px">
+        Projete os próximos meses para ver quando atinge o breakeven. Você pode supor um
+        <strong>reajuste anual no preço</strong> da diária. A parte projetada aparece tracejada no gráfico.
+      </p>
+
+      <div class="form-row">
+        <div>
+          <label class="label">Meses a projetar</label>
+          <input type="number" id="sim-meses" min="0" max="120" step="1" value="12" onchange="atualizarSimulacao()">
+        </div>
+        <div>
+          <label class="label">Receita líquida média/mês (base)</label>
+          <input type="number" id="sim-base" min="0" step="0.01" onchange="atualizarSimulacao()">
+        </div>
+        <div>
+          <label class="label">Reajuste anual do preço (%)</label>
+          <input type="number" id="sim-reajuste" step="0.1" onchange="atualizarSimulacao()">
+        </div>
+        <div>
+          <label class="label">Modelo de projeção</label>
+          <select id="sim-modo" onchange="atualizarSimulacao()">
+            <option value="sazonal">Sazonal (recomendado)</option>
+            <option value="linear">Linear (taxa constante)</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:12px; color:#888; margin-top:6px">
+        <strong>Sazonal</strong> aplica o padrão de alta/baixa temporada do seu histórico (precisa de 2+ anos).
+        <strong>Linear</strong> cresce de forma uniforme. Em ambos, o reajuste é a sua premissa de aumento de preço.
+      </div>
+
+      <div style="margin-top:12px; padding:10px 14px; background:#F5F3FF; border-radius:8px; font-size:13px; color:#5B21B6; display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+        <span id="sim-sugestao" style="flex:1; min-width:220px">💡 Calculando sugestão…</span>
+        <button class="btn btn-sm btn-secondary" onclick="aplicarSugestaoReajuste()">Usar sugestão</button>
+      </div>
+
+      <div id="sim-resultado" style="margin-top:12px; font-size:13px; color:#444"></div>
+    </div>
+
     <!-- Gráfico comparativo dos 3 cenários -->
     <div class="card" style="margin-top:16px">
       <h2 style="font-size:16px; font-weight:600; margin-bottom:6px">📈 Comparação dos 3 cenários ao longo do tempo</h2>
       <p style="font-size:12px; color:#666; margin-bottom:12px">
         Receita acumulada (verde) versus os 3 cenários de custo. O ponto de cruzamento é o breakeven.
+        Trecho <strong>tracejado</strong> = projeção futura (simulação acima).
       </p>
       <div class="chart-container" style="height:420px"><canvas id="chartBreakeven"></canvas></div>
     </div>
@@ -1803,15 +1886,15 @@
       <div class="form-row">
         <div>
           <label class="label">Nome do imóvel (para placeholder <code>{imovel}</code>)</label>
-          <input type="text" id="msg-cfg-imovel" placeholder="Ex: Brasília Premium" onchange="salvarConfigMensagens()">
+          <input type="text" id="msg-cfg-imovel" placeholder="Ex: Apto Centro" onchange="salvarConfigMensagens()">
         </div>
         <div>
           <label class="label">Cidade (para placeholder <code>{cidade}</code>)</label>
-          <input type="text" id="msg-cfg-cidade" placeholder="Ex: Brasília" onchange="salvarConfigMensagens()">
+          <input type="text" id="msg-cfg-cidade" placeholder="Ex: sua cidade" onchange="salvarConfigMensagens()">
         </div>
         <div>
           <label class="label">Sua assinatura</label>
-          <input type="text" id="msg-cfg-assinatura" placeholder="Ex: Alex" onchange="salvarConfigMensagens()">
+          <input type="text" id="msg-cfg-assinatura" placeholder="Ex: seu nome" onchange="salvarConfigMensagens()">
         </div>
       </div>
     </div>
@@ -2821,6 +2904,12 @@
       <h2 style="font-size:17px; font-weight:600; margin-bottom:12px">⚙️ Configurações gerais</h2>
 
       <div style="margin-bottom:16px">
+        <label class="label">Seu nome (anfitrião)</label>
+        <input type="text" id="cfg-anfitriao" placeholder="Ex: Maria Souza" onchange="salvarAnfitriao()" style="max-width:300px">
+        <div style="font-size:12px; color:#888; margin-top:4px">Aparece no topo do dashboard. Deixe em branco se preferir não exibir.</div>
+      </div>
+
+      <div style="margin-bottom:16px">
         <label class="label">Mês inicial da operação como Airbnb</label>
         <input type="month" id="mes-inicio-operacao" value="2026-04" onchange="salvarConfig(); renderTudo()" style="max-width:200px">
         <div style="font-size:12px; color:#888; margin-top:4px">Despesas anteriores a este mês não serão computadas no breakeven operacional.</div>
@@ -2955,6 +3044,503 @@
 // Para gerar uma versão específica, altere a linha abaixo:
 const EDICAO = 'pro';
 // =====================================================================
+
+// =====================================================================
+// 🔐 SISTEMA DE LICENCIAMENTO
+// =====================================================================
+// Configurações do servidor de validação (será preenchido na Sprint 2)
+const LIC_CONFIG = {
+  // URL do servidor de validação - configurar quando o servidor estiver pronto
+  serverUrl: 'https://anfitriaopro.com.br/api/validar.php',
+  // Frequência de validação: 7 dias
+  diasEntreValidacoes: 7,
+  // Limite de dispositivos por chave
+  maxDispositivos: 2,
+  // Tolerância para servidor offline (dias)
+  diasToleranciaOffline: 7,
+  // Modo: 'offline' (validação local apenas) ou 'online' (servidor)
+  // Por enquanto começa como 'offline' - mudar para 'online' depois da Sprint 2
+  modo: 'offline'
+};
+
+// Versões Básica não exigem ativação (proteção mínima)
+// Pro e Premium exigem chave de ativação
+const EXIGE_ATIVACAO = (EDICAO === 'pro' || EDICAO === 'premium');
+
+// Cache de validação (evita verificar 1000x por minuto)
+let LIC_STATE = {
+  ativada: false,
+  chave: null,
+  email: null,
+  dispositivoId: null,
+  validadaEm: null,
+  expira: null,
+  proprietario: null  // Nome do cliente (vem do servidor) - usado em watermark
+};
+
+// =====================================================================
+// 🔑 GERAÇÃO/VALIDAÇÃO DE CHAVE
+// =====================================================================
+// Formato da chave: EDICAO-XXXX-XXXX-XXXX
+// Exemplo: PRO-A7B3-K9M2-XYZ1 ou PREMIUM-A7B3-K9M2-XYZ1
+
+function validarFormatoChave(chave) {
+  if (!chave) return false;
+  const c = chave.trim().toUpperCase();
+  // Formato: PREFIXO-XXXX-XXXX-XXXX (4 segmentos alfanuméricos)
+  const regex = /^(BASICA|PRO|PREMIUM)-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  return regex.test(c);
+}
+
+function extrairEdicaoDaChave(chave) {
+  if (!validarFormatoChave(chave)) return null;
+  return chave.split('-')[0].toLowerCase();
+}
+
+// Checksum local: garante que a chave foi gerada por algoritmo correto
+// (proteção contra usuários inventando chaves aleatórias)
+function chaveTeChecksumValido(chave) {
+  if (!validarFormatoChave(chave)) return false;
+  const partes = chave.toUpperCase().split('-');
+  const corpo = partes.slice(1).join(''); // 12 caracteres alfanuméricos
+  // Soma das posições de cada caractere (módulo 36)
+  const ALFA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let soma = 0;
+  for (let i = 0; i < corpo.length - 1; i++) {
+    soma += ALFA.indexOf(corpo[i]) * (i + 1);
+  }
+  const checksumEsperado = ALFA[soma % 36];
+  return corpo[corpo.length - 1] === checksumEsperado;
+}
+
+// =====================================================================
+// 🆔 FINGERPRINT DO DISPOSITIVO
+// =====================================================================
+function gerarFingerprintDispositivo() {
+  // Combina características do navegador para gerar ID único
+  const partes = [
+    navigator.userAgent || '',
+    navigator.language || '',
+    screen.width + 'x' + screen.height + 'x' + (screen.colorDepth || ''),
+    new Date().getTimezoneOffset(),
+    navigator.platform || '',
+    navigator.hardwareConcurrency || ''
+  ];
+  // Canvas fingerprint (técnica padrão)
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('Dashboard Airbnb 🏠', 2, 2);
+    partes.push(canvas.toDataURL());
+  } catch(e) {}
+
+  // Hash simples (não criptográfico, suficiente pra fingerprint)
+  const str = partes.join('|');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return 'dev_' + Math.abs(hash).toString(36);
+}
+
+// =====================================================================
+// 💾 PERSISTÊNCIA DA LICENÇA
+// =====================================================================
+function salvarLicenca() {
+  try {
+    // Salva em múltiplos lugares pra dificultar limpeza casual
+    const dados = JSON.stringify(LIC_STATE);
+    localStorage.setItem('dashboard_lic', dados);
+    // Backup em cookie (30 dias)
+    document.cookie = `dlc=${btoa(dados)}; max-age=${30*24*3600}; path=/`;
+  } catch(e) { console.warn('Erro salvando licença:', e); }
+}
+
+function carregarLicenca() {
+  try {
+    const dados = localStorage.getItem('dashboard_lic');
+    if (dados) {
+      const obj = JSON.parse(dados);
+      Object.assign(LIC_STATE, obj);
+      return true;
+    }
+    // Tentar recuperar do cookie como fallback
+    const cookies = document.cookie.split(';');
+    for (const c of cookies) {
+      const [k, v] = c.trim().split('=');
+      if (k === 'dlc' && v) {
+        const obj = JSON.parse(atob(v));
+        Object.assign(LIC_STATE, obj);
+        salvarLicenca(); // restaurar no localStorage
+        return true;
+      }
+    }
+  } catch(e) { console.warn('Erro carregando licença:', e); }
+  return false;
+}
+
+function limparLicenca() {
+  localStorage.removeItem('dashboard_lic');
+  document.cookie = 'dlc=; max-age=0; path=/';
+  LIC_STATE = { ativada: false, chave: null, email: null, dispositivoId: null, validadaEm: null, expira: null, proprietario: null };
+}
+
+// =====================================================================
+// ✅ VALIDAÇÃO DA LICENÇA
+// =====================================================================
+async function validarLicenca(chave, email) {
+  // Etapa 1: validar formato e checksum local (sempre, mesmo offline)
+  if (!validarFormatoChave(chave)) {
+    return { ok: false, erro: 'Formato de chave inválido. Use o formato: ' + EDICAO.toUpperCase() + '-XXXX-XXXX-XXXX' };
+  }
+  if (!chaveTeChecksumValido(chave)) {
+    return { ok: false, erro: 'Chave inválida (checksum não confere). Verifique se digitou corretamente.' };
+  }
+  const edicaoChave = extrairEdicaoDaChave(chave);
+  if (edicaoChave !== EDICAO) {
+    const ed = FEATURES[edicaoChave];
+    return {
+      ok: false,
+      erro: `Esta chave é da versão ${ed ? ed.nome : edicaoChave} mas este arquivo é da versão ${FEAT.nome}. Use a chave correspondente ao arquivo.`
+    };
+  }
+
+  // Etapa 2: validar email
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    return { ok: false, erro: 'E-mail inválido.' };
+  }
+
+  // Etapa 3: validação no servidor (se estiver em modo online)
+  if (LIC_CONFIG.modo === 'online') {
+    try {
+      const fingerprint = gerarFingerprintDispositivo();
+      const resp = await fetch(LIC_CONFIG.serverUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          acao: 'ativar',
+          chave: chave.toUpperCase(),
+          email: email.toLowerCase().trim(),
+          fingerprint,
+          edicao: EDICAO,
+          dataAtivacao: new Date().toISOString()
+        }),
+        // Timeout de 10s
+        signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined
+      });
+      if (!resp.ok) throw new Error('Servidor retornou ' + resp.status);
+      const dataResp = await resp.json();
+      if (!dataResp.ok) {
+        return { ok: false, erro: dataResp.erro || 'Chave não autorizada pelo servidor.' };
+      }
+      // Sucesso online
+      LIC_STATE = {
+        ativada: true,
+        chave: chave.toUpperCase(),
+        email: email.toLowerCase().trim(),
+        dispositivoId: fingerprint,
+        validadaEm: new Date().toISOString(),
+        expira: new Date(Date.now() + LIC_CONFIG.diasEntreValidacoes * 24 * 3600 * 1000).toISOString(),
+        proprietario: dataResp.nomeCliente || email.split('@')[0]
+      };
+      salvarLicenca();
+      return { ok: true };
+    } catch (e) {
+      console.warn('Servidor offline ou erro:', e.message);
+      // Em modo online com servidor offline, ainda permite ativação local
+      // mas com aviso (segunda chance de validar nas próximas N dias)
+    }
+  }
+
+  // Etapa 4: validação offline (modo atual ou fallback)
+  const fingerprint = gerarFingerprintDispositivo();
+  LIC_STATE = {
+    ativada: true,
+    chave: chave.toUpperCase(),
+    email: email.toLowerCase().trim(),
+    dispositivoId: fingerprint,
+    validadaEm: new Date().toISOString(),
+    expira: new Date(Date.now() + LIC_CONFIG.diasEntreValidacoes * 24 * 3600 * 1000).toISOString(),
+    proprietario: email.split('@')[0]
+  };
+  salvarLicenca();
+  return { ok: true, aviso: LIC_CONFIG.modo === 'online' ? 'Servidor offline. Ativação local válida por ' + LIC_CONFIG.diasToleranciaOffline + ' dias.' : null };
+}
+
+async function reValidarLicencaPeriodicamente() {
+  // Verifica se está perto de expirar e re-valida silenciosamente
+  if (!LIC_STATE.ativada || !LIC_STATE.expira) return;
+  const expiraData = new Date(LIC_STATE.expira);
+  const agora = new Date();
+  const diasRestantes = (expiraData - agora) / (24 * 3600 * 1000);
+
+  if (diasRestantes < 0) {
+    // Expirou — exigir nova ativação se modo online
+    if (LIC_CONFIG.modo === 'online') {
+      LIC_STATE.ativada = false;
+      salvarLicenca();
+      mostrarTelaAtivacao('⚠️ Sua licença expirou. Por favor, re-ative.');
+      return;
+    } else {
+      // Modo offline: renovar localmente
+      LIC_STATE.expira = new Date(Date.now() + LIC_CONFIG.diasEntreValidacoes * 24 * 3600 * 1000).toISOString();
+      salvarLicenca();
+    }
+  }
+  // Re-validação silenciosa quando faltar 1 dia (só se modo online)
+  if (LIC_CONFIG.modo === 'online' && diasRestantes < 1 && diasRestantes > 0) {
+    try {
+      await validarLicenca(LIC_STATE.chave, LIC_STATE.email);
+    } catch(e) {
+      console.warn('Re-validação falhou silenciosamente:', e);
+    }
+  }
+}
+
+// =====================================================================
+// 🖼️ TELA DE ATIVAÇÃO
+// =====================================================================
+function mostrarTelaAtivacao(mensagemErro) {
+  // Esconde todo o conteúdo do dashboard
+  document.body.style.overflow = 'hidden';
+
+  // Remove overlay anterior se houver
+  const anterior = document.getElementById('overlay-ativacao');
+  if (anterior) anterior.remove();
+
+  const ed = FEAT;
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay-ativacao';
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #FF385C 0%, #7B61FF 100%);
+    z-index: 99999; display: flex; align-items: center; justify-content: center;
+    padding: 20px; overflow-y: auto;
+  `;
+  overlay.innerHTML = `
+    <div style="background: white; max-width: 480px; width: 100%; padding: 32px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center">
+      <div style="font-size: 56px; line-height: 1; margin-bottom: 8px">${ed.icone}</div>
+      <h1 style="font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px">AnfitriãoPro ${ed.nome}</h1>
+      <p style="font-size: 14px; color: #666; margin-bottom: 24px">Ativação necessária para usar este produto</p>
+
+      ${mensagemErro ? `<div style="padding: 10px 14px; background: #FEE2E2; color: #991B1B; border-radius: 8px; margin-bottom: 16px; font-size: 13px">${mensagemErro}</div>` : ''}
+
+      <div style="text-align: left; margin-bottom: 20px">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px">🔑 Chave de ativação</label>
+        <input type="text" id="ativ-chave" placeholder="${EDICAO.toUpperCase()}-XXXX-XXXX-XXXX"
+               style="width: 100%; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: monospace; font-size: 14px; letter-spacing: 1px; text-transform: uppercase"
+               oninput="this.value = this.value.toUpperCase()">
+      </div>
+
+      <div style="text-align: left; margin-bottom: 20px">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px">📧 Seu e-mail (mesmo da compra)</label>
+        <input type="email" id="ativ-email" placeholder="voce@exemplo.com"
+               style="width: 100%; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px">
+      </div>
+
+      <button id="btn-ativar" onclick="executarAtivacao()"
+              style="width: 100%; padding: 14px; background: linear-gradient(135deg, #FF385C, #7B61FF); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(255,56,92,0.3)">
+        🔓 Ativar Dashboard
+      </button>
+
+      <div style="margin-top: 20px; padding: 12px; background: #f8f8f8; border-radius: 8px; font-size: 11px; color: #888; line-height: 1.6">
+        <p style="margin: 0 0 6px 0"><strong>🆘 Não tem chave?</strong></p>
+        <p style="margin: 0">Sua chave foi enviada por e-mail após a compra. Não recebeu? Entre em contato pelo canal de suporte informado no momento da compra.</p>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 10px; color: #aaa">
+        Versão ${ed.nome} ${ed.preco} · Esta cópia é única e rastreável
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('ativ-chave').focus(), 100);
+
+  // Enter pra ativar
+  document.getElementById('ativ-chave').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('ativ-email').focus();
+  });
+  document.getElementById('ativ-email').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') executarAtivacao();
+  });
+}
+
+async function executarAtivacao() {
+  const chave = document.getElementById('ativ-chave').value.trim();
+  const email = document.getElementById('ativ-email').value.trim();
+  const btn = document.getElementById('btn-ativar');
+
+  if (!chave || !email) {
+    alert('Preencha chave e e-mail.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Validando...';
+
+  try {
+    const result = await validarLicenca(chave, email);
+    if (result.ok) {
+      // Sucesso! Remover overlay
+      const overlay = document.getElementById('overlay-ativacao');
+      if (overlay) overlay.remove();
+      document.body.style.overflow = '';
+      if (result.aviso) {
+        setTimeout(() => alert('✅ Ativado com sucesso!\n\n' + result.aviso), 200);
+      } else {
+        // Toast de boas-vindas
+        setTimeout(() => {
+          const toast = document.createElement('div');
+          toast.textContent = `✅ Bem-vindo ao AnfitriãoPro ${FEAT.nome}!`;
+          toast.style.cssText = 'position:fixed; top:80px; left:50%; transform:translateX(-50%); background:#00A878; color:white; padding:14px 28px; border-radius:8px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:99999; font-size:14px';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        }, 100);
+      }
+      // Reaplicar marca d'água com nome do cliente
+      aplicarWatermark();
+    } else {
+      btn.disabled = false;
+      btn.textContent = '🔓 Ativar Dashboard';
+      mostrarTelaAtivacao(result.erro);
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '🔓 Ativar Dashboard';
+    alert('Erro inesperado: ' + e.message);
+  }
+}
+
+// =====================================================================
+// 💧 MARCA D'ÁGUA (visual + invisível)
+// =====================================================================
+function aplicarWatermark() {
+  // 1. WATERMARK VISUAL: rodapé sutil + footer fixo
+  let footer = document.getElementById('watermark-footer');
+  if (!footer) {
+    footer = document.createElement('div');
+    footer.id = 'watermark-footer';
+    footer.style.cssText = `
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+      border-top: 1px solid #e0e0e0;
+      padding: 6px 16px; font-size: 10px; color: #888;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 1000; pointer-events: none;
+    `;
+    document.body.appendChild(footer);
+  }
+
+  const proprietario = LIC_STATE.proprietario || LIC_STATE.email || 'Usuário';
+  const chaveAbrev = LIC_STATE.chave ? LIC_STATE.chave.substring(0, 12) + '...' : '';
+
+  footer.innerHTML = `
+    <div>${FEAT.icone} <strong>AnfitriãoPro ${FEAT.nome}</strong> · Licenciado para: <strong>${proprietario}</strong></div>
+    <div style="font-family:monospace; color:#aaa">${chaveAbrev}</div>
+  `;
+
+  // Espaço pro conteúdo não ficar atrás do footer
+  document.body.style.paddingBottom = '32px';
+
+  // 2. WATERMARK INVISÍVEL: metadados HTML embarcados (não removível casualmente)
+  // Adiciona meta tags com informação de licenciamento
+  ['lic-chave', 'lic-email', 'lic-fingerprint', 'lic-ativada-em'].forEach(name => {
+    let meta = document.querySelector(`meta[name="${name}"]`);
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = name;
+      document.head.appendChild(meta);
+    }
+  });
+  document.querySelector('meta[name="lic-chave"]').content = LIC_STATE.chave || '';
+  document.querySelector('meta[name="lic-email"]').content = LIC_STATE.email || '';
+  document.querySelector('meta[name="lic-fingerprint"]').content = LIC_STATE.dispositivoId || '';
+  document.querySelector('meta[name="lic-ativada-em"]').content = LIC_STATE.validadaEm || '';
+
+  // 3. WATERMARK INVISÍVEL #2: comentário HTML codificado (no console aparece)
+  console.log(`%c🔐 AnfitriãoPro ${FEAT.nome}`, 'color:#FF385C; font-size:16px; font-weight:bold');
+  console.log(`%cLicenciado para: ${proprietario} (${LIC_STATE.email})`, 'color:#7B61FF; font-size:12px');
+  console.log(`%cEsta cópia é única e rastreável. Distribuição não autorizada é violação de direitos autorais.`, 'color:#666; font-style:italic');
+
+  // 4. WATERMARK INVISÍVEL #3: window object (qualquer extensão de auditoria pode ler)
+  window.__DASHBOARD_LICENSE__ = Object.freeze({
+    edition: FEAT.nome,
+    licensee: LIC_STATE.email,
+    activatedAt: LIC_STATE.validadaEm,
+    deviceId: LIC_STATE.dispositivoId
+  });
+}
+
+// =====================================================================
+// 🚀 INICIALIZAÇÃO DO SISTEMA DE LICENÇA
+// =====================================================================
+async function inicializarLicenciamento() {
+  // Edição Básica não exige ativação
+  if (!EXIGE_ATIVACAO) {
+    aplicarWatermarkBasico();
+    return true;
+  }
+
+  // Carregar licença salva
+  carregarLicenca();
+
+  // Se não está ativada, mostrar tela
+  if (!LIC_STATE.ativada) {
+    mostrarTelaAtivacao();
+    return false;
+  }
+
+  // Verificar se chave salva é da edição correta
+  if (extrairEdicaoDaChave(LIC_STATE.chave) !== EDICAO) {
+    limparLicenca();
+    mostrarTelaAtivacao('⚠️ Esta chave não corresponde a este arquivo. Use a chave correspondente.');
+    return false;
+  }
+
+  // Verificar se dispositivo bateu (proteção básica contra simplesmente copiar localStorage)
+  const fingerprintAtual = gerarFingerprintDispositivo();
+  if (LIC_STATE.dispositivoId !== fingerprintAtual) {
+    // Dispositivo mudou — em modo online seria validado no servidor
+    // Em modo offline, deixa passar mas marca pra revalidação
+    LIC_STATE.dispositivoId = fingerprintAtual;
+    salvarLicenca();
+  }
+
+  // Validação periódica (a cada N dias)
+  await reValidarLicencaPeriodicamente();
+
+  // Aplicar marca d'água
+  aplicarWatermark();
+  return true;
+}
+
+// Marca d'água básica (versão Básica, sem chave)
+function aplicarWatermarkBasico() {
+  let footer = document.getElementById('watermark-footer');
+  if (!footer) {
+    footer = document.createElement('div');
+    footer.id = 'watermark-footer';
+    footer.style.cssText = `
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.95);
+      border-top: 1px solid #e0e0e0;
+      padding: 6px 16px; font-size: 10px; color: #888;
+      text-align: center; z-index: 1000; pointer-events: none;
+    `;
+    document.body.appendChild(footer);
+  }
+  footer.innerHTML = `${FEAT.icone} <strong>AnfitriãoPro ${FEAT.nome}</strong> · Versão para anfitriões iniciantes · <em>Faça upgrade para Pro/Premium para mais funcionalidades</em>`;
+  document.body.style.paddingBottom = '32px';
+
+  console.log(`%c🏠 AnfitriãoPro ${FEAT.nome}`, 'color:#FF385C; font-size:16px; font-weight:bold');
+  console.log(`%cVersão Básica — Para mais funcionalidades, faça upgrade para Pro/Premium`, 'color:#666');
+}
+
+// =====================================================================
+
 
 const FEATURES = {
   basica: {
@@ -3111,7 +3697,8 @@ function garantirEstruturaDados() {
     // Criar imóvel padrão com dados que já existiam em dados.config
     const imvPadrao = {
       id: uidImovel(),
-      nome: 'Brasília Premium',
+      nome: 'Meu Imóvel',
+      exemplo: true,   // marca de imóvel-exemplo criado no 1º uso (some ao renomear)
       icone: '🏠',
       cor: '#FF385C',
       parcelaApto: dados.config.parcelaApto || 0,
@@ -3328,10 +3915,123 @@ function atualizarHeader() {
     if (imv) {
       titEl.innerHTML = `${imv.icone || '🏠'} ${imv.nome}`;
       const total = dados.imoveis.length;
-      subEl.textContent = total > 1 ? `${total} imóveis cadastrados — Anfitrião: Alex Mendes` : 'Anfitrião: Alex Mendes';
+      const anfitriao = (dados.config && dados.config.anfitriao) ? String(dados.config.anfitriao).trim() : '';
+      const sufixo = anfitriao ? ` — Anfitrião: ${anfitriao}` : '';
+      const base = total > 1 ? `${total} imóveis cadastrados` : 'Gestão financeira do seu imóvel';
+      subEl.textContent = base + sufixo;
     }
   }
 }
+
+// Salva o nome do anfitrião (global em dados.config) e atualiza o cabeçalho
+function salvarAnfitriao() {
+  const el = document.getElementById('cfg-anfitriao');
+  if (!el) return;
+  if (!dados.config) dados.config = {};
+  dados.config.anfitriao = el.value.trim();
+  salvarDados();
+  atualizarHeader();
+}
+
+// Navega para uma aba a partir do seu id (encontra o botão correspondente)
+function irParaAba(id) {
+  const btn = Array.from(document.querySelectorAll('.tab'))
+    .find(b => (b.getAttribute('onclick') || '').includes("'" + id + "'"));
+  if (btn) showTab(id, btn);
+}
+
+// Aviso de primeiro uso: orienta a cadastrar o imóvel
+function renderBoasVindas() {
+  const cont = document.getElementById('aviso-boas-vindas');
+  if (!cont) return;
+  const semDados = (dados.reservas.length === 0 && dados.despesas.length === 0 && dados.investimento.length === 0);
+  const temExemplo = dados.imoveis.some(i => i.exemplo);
+  let dispensado = false;
+  try { dispensado = localStorage.getItem('anfitriaopro_boas_vindas') === 'ok'; } catch(e) {}
+  if (!semDados || !temExemplo || dispensado) { cont.innerHTML = ''; return; }
+  cont.innerHTML = `
+    <div style="margin:0 0 16px; padding:14px 16px; border:1px solid #FFD6A5; background:#FFF7ED; border-radius:10px; display:flex; gap:12px; align-items:flex-start">
+      <div style="font-size:22px; line-height:1">👋</div>
+      <div style="flex:1; font-size:13px; color:#7c4a03; line-height:1.55">
+        <strong>Bem-vindo ao AnfitriãoPro!</strong> Antes de começar, cadastre o seu imóvel.
+        Vá em <strong>🏘️ Imóveis</strong> e clique em <em>Editar</em> no imóvel de exemplo
+        (“Meu Imóvel”) para colocar o nome e os dados reais — ou em <em>+ Novo Imóvel</em> para
+        adicionar o seu. Depois importe suas reservas em <strong>💰 Receitas</strong>.
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="irParaAba('imoveis')">🏘️ Ir para Imóveis</button>
+          <button class="btn btn-secondary btn-sm" onclick="dispensarBoasVindas()">Entendi, ocultar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function dispensarBoasVindas() {
+  try { localStorage.setItem('anfitriaopro_boas_vindas', 'ok'); } catch(e) {}
+  renderBoasVindas();
+}
+
+// ========== AJUDA NOS CARDS (ícone ⓘ + popover) ==========
+// Textos curtos baseados no Manual, para tirar dúvidas na própria tela.
+const AJUDA = {
+  'receita-paga': { titulo: '✅ Receita Paga', texto: 'Soma do valor <strong>líquido</strong> das reservas já PAGAS pelo Airbnb (o dinheiro que caiu na sua conta). "Bruta" é o valor antes das taxas de serviço do Airbnb.' },
+  'receita-programada': { titulo: '⏳ Receita Programada', texto: 'Reservas confirmadas pelo hóspede, mas que o Airbnb ainda <strong>não pagou</strong>. O payout costuma cair cerca de 24h após o check-in. Some à receita paga quando o CSV de transações for importado.' },
+  'receita-liquida': { titulo: 'Receita Líquida', texto: 'Receita depois de descontadas as <strong>taxas de serviço do Airbnb</strong>. É o que de fato entra, antes de despesas e impostos.' },
+  'despesas': { titulo: 'Despesas Operacionais', texto: 'Custos mensais de operação: condomínio, energia, água, internet, limpeza, manutenção, etc. <em>Não</em> inclui a parcela do apartamento (que fica em Financiamento).' },
+  'impostos': { titulo: 'Impostos', texto: 'Imposto estimado sobre a renda de locação por temporada, conforme o regime do imóvel (Carnê-Leão, 27,5% marginal, etc.). É uma estimativa — confirme com seu contador.' },
+  'financiamento': { titulo: 'Financiamento', texto: 'Parcelas do <strong>investimento inicial</strong> (mobília/reforma parcelada) somadas à <strong>parcela do financiamento do apartamento</strong>, se você a cadastrou em Despesas.' },
+  'lucro-sem': { titulo: 'Lucro Líquido (sem apto)', texto: 'Lucro após taxas, despesas e impostos, mas <strong>sem</strong> a parcela do apartamento. Mostra o desempenho da operação do Airbnb em si.' },
+  'lucro-com': { titulo: 'Lucro Líquido (com apto)', texto: 'Lucro com <strong>tudo</strong> descontado, incluindo a parcela do apartamento. É o resultado final no seu bolso.' },
+  'reservas': { titulo: 'Reservas', texto: 'Quantidade de reservas no período, total de noites e o <strong>ticket médio</strong> (receita líquida dividida pelo número de reservas).' },
+  'investimento-total': { titulo: 'Investimento Total', texto: 'Quanto você gastou para <strong>montar e equipar</strong> o Airbnb: mobília, eletrodomésticos, reforma e decoração.' },
+  'custo-total': { titulo: '💎 Custo TOTAL', texto: 'Custo total do projeto: <strong>aquisição do imóvel</strong> (entrada, ITBI, cartório) + <strong>investimento</strong> para montar o Airbnb.' },
+  'investimento-airbnb': { titulo: '🔨 Investimento Airbnb', texto: 'Apenas o que foi gasto para montar e equipar o imóvel para locação — <em>sem</em> o custo de compra do imóvel.' },
+  'simulacao': { titulo: '🔮 Simular receitas futuras', texto: 'Estende o gráfico para o futuro usando uma <strong>receita líquida média mensal</strong> (base) que cresce conforme o <strong>reajuste anual</strong> que você informar (sua premissa de aumento de preço). <strong>Modelo Sazonal</strong> aplica o padrão de alta/baixa temporada do seu histórico (precisa de 2+ anos); <strong>Linear</strong> cresce de forma uniforme. A sugestão de reajuste usa a tendência do seu histórico já descontada a sazonalidade. Os custos futuros são mantidos na média mensal atual. Serve para estimar quando você atinge o breakeven.' }
+};
+
+function mostrarAjuda(chave, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  const item = AJUDA[chave];
+  if (!item) return;
+  let pop = document.getElementById('ajuda-popover');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'ajuda-popover';
+    pop.className = 'ajuda-popover';
+    document.body.appendChild(pop);
+  }
+  pop.innerHTML = `<button class="ajuda-pop-fechar" onclick="fecharAjuda()" aria-label="Fechar">×</button>`
+    + `<div class="ajuda-pop-titulo">${item.titulo}</div>`
+    + `<div class="ajuda-pop-texto">${item.texto}</div>`;
+  pop.style.display = 'block';
+  // Posicionar perto do ícone clicado
+  const alvo = ev && ev.currentTarget ? ev.currentTarget : null;
+  if (alvo) {
+    const r = alvo.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 8) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    // Ajustar se sair pela direita da tela
+    requestAnimationFrame(() => {
+      const pr = pop.getBoundingClientRect();
+      if (pr.right > window.innerWidth - 12) {
+        pop.style.left = Math.max(8, window.scrollX + window.innerWidth - pr.width - 12) + 'px';
+      }
+    });
+  }
+}
+
+function fecharAjuda() {
+  const pop = document.getElementById('ajuda-popover');
+  if (pop) pop.style.display = 'none';
+}
+
+// Fecha o popover ao clicar fora dele
+document.addEventListener('click', (e) => {
+  const pop = document.getElementById('ajuda-popover');
+  if (!pop || pop.style.display !== 'block') return;
+  if (pop.contains(e.target)) return;
+  if (e.target.classList && e.target.classList.contains('ajuda-icone')) return;
+  fecharAjuda();
+});
 
 // ========== CRUD DE IMÓVEIS ==========
 function renderImoveis() {
@@ -3654,6 +4354,7 @@ function editarImovel(id) {
       imv.parcelaApto = parseFloat(v.parcelaApto) || 0;
       imv.regime = v.regime || 'renda-alta';
       imv.aliquotaCustom = parseFloat(v.aliquotaCustom) || 27.5;
+      imv.exemplo = false;   // imóvel personalizado deixa de ser "exemplo"
       salvarDados();
       renderTudo();
     }
@@ -4169,7 +4870,9 @@ function importarCSV(ev) {
   const file = ev.target.files[0];
   if (!file) return;
 
-  // Se há mais de um imóvel, perguntar para qual importar
+  const nomeArquivo = file.name || 'arquivo.csv';
+
+  // Decidir o imóvel de destino
   let imovelDestino = imovelIdParaNovo();
   if (dados.imoveis.length > 1) {
     let menu = 'Para qual imóvel importar as reservas?\n\n';
@@ -4188,6 +4891,18 @@ function importarCSV(ev) {
     }
     imovelDestino = dados.imoveis[idx - 1].id;
   }
+
+  // Confirmação SEMPRE (mesmo com 1 imóvel): deixa claro o que vai pra onde
+  const imvDestObj = dados.imoveis.find(i => i.id === imovelDestino);
+  const nomeImovel = imvDestObj ? `${imvDestObj.icone || '🏠'} ${imvDestObj.nome}` : 'imóvel atual';
+  const confirmar = confirm(
+    'Confirmar importação?\n\n' +
+    '📄 Arquivo: ' + nomeArquivo + '\n' +
+    '🏠 Imóvel de destino: ' + nomeImovel + '\n\n' +
+    'As reservas deste arquivo serão inseridas no imóvel acima. ' +
+    'Se forem de outro imóvel, cancele e selecione (ou cadastre) o imóvel correto antes de importar.'
+  );
+  if (!confirmar) { ev.target.value = ''; return; }
 
   const reader = new FileReader();
   reader.onload = e => {
@@ -4307,6 +5022,24 @@ function importarCSV(ev) {
         }
       }
 
+      // Ajusta o início da operação se foram importadas reservas anteriores
+      // ao mês configurado (senão o histórico antigo ficaria oculto nos KPIs).
+      let avisoInicio = '';
+      const imvAjuste = dados.imoveis.find(i => i.id === imovelDestino);
+      if (imvAjuste) {
+        const iniciosMes = dados.reservas
+          .filter(r => r.imovelId === imovelDestino && r.inicio)
+          .map(r => r.inicio.slice(0, 7));
+        if (iniciosMes.length) {
+          const maisAntigo = iniciosMes.reduce((a, b) => (a < b ? a : b));
+          if (!imvAjuste.mesInicioOperacao || maisAntigo < imvAjuste.mesInicioOperacao) {
+            const anterior = imvAjuste.mesInicioOperacao || '—';
+            imvAjuste.mesInicioOperacao = maisAntigo;
+            avisoInicio = `\n📅 Início da operação ajustado para ${maisAntigo} (havia reservas anteriores a ${anterior}).`;
+          }
+        }
+      }
+
       ev.target.value = '';
       salvarDados();
       renderTudo();
@@ -4334,6 +5067,7 @@ function importarCSV(ev) {
       if (detalhes.novas.length > 0 && detalhes.novas.length <= 8) {
         msg += `\nNovas:\n` + detalhes.novas.map(s => '• ' + s).join('\n');
       }
+      if (avisoInicio) msg += '\n' + avisoInicio;
 
       alert(msg);
     } catch (err) {
@@ -5906,7 +6640,171 @@ function renderBreakeven() {
   // 🆕 Renderizar comparação Airbnb vs Renda Fixa
   renderAirbnbVsRendaFixa(meses, coAtivo);
 
+  // 🔮 Simulação de receitas futuras (popula campos + sugestão)
+  popularSimulacaoUI(meses, receitaAcum, numMeses);
+
   // Gráfico será renderizado em renderCharts
+}
+
+// ==================== SIMULAÇÃO DE RECEITAS FUTURAS ====================
+// Estado guardado por imóvel (ou global no modo "todos").
+function getSimulacaoStore() {
+  const imv = imovelAtual();
+  if (imv) { if (!imv.simulacao) imv.simulacao = {}; return imv.simulacao; }
+  if (!dados.config) dados.config = {};
+  if (!dados.config.simulacao) dados.config.simulacao = {};
+  return dados.config.simulacao;
+}
+
+// Índices de sazonalidade (componente sazonal estilo Holt-Winters, simplificado).
+// Para cada mês do calendário: fator = média daquele mês ÷ média geral.
+// Normalizados para média 1 (não alteram o nível anual). Só confiável com 2+ anos.
+function calcularIndicesSazonais(meses) {
+  meses = meses || calcularResumoMensal();
+  const anos = new Set(meses.map(m => m.mes.slice(0, 4)));
+  const porMes = {};
+  meses.forEach(m => {
+    const mm = m.mes.slice(5, 7);
+    if (!porMes[mm]) porMes[mm] = { soma: 0, n: 0 };
+    porMes[mm].soma += m.liquido;
+    porMes[mm].n++;
+  });
+  const mediaGeral = meses.length ? meses.reduce((s, m) => s + m.liquido, 0) / meses.length : 0;
+  const ok = anos.size >= 2 && meses.length >= 18 && mediaGeral > 0;
+  const indices = {};
+  for (let i = 1; i <= 12; i++) {
+    const mm = String(i).padStart(2, '0');
+    indices[mm] = (ok && porMes[mm] && porMes[mm].n > 0)
+      ? (porMes[mm].soma / porMes[mm].n) / mediaGeral
+      : 1;
+  }
+  if (ok) {
+    const soma = Object.values(indices).reduce((s, v) => s + v, 0);
+    const fator = soma > 0 ? 12 / soma : 1;
+    for (const k in indices) indices[k] *= fator; // renormaliza p/ média 1
+  }
+  return { ok, indices, anos: anos.size };
+}
+
+// Sugestão de reajuste anual. Preferência: tendência log-linear sobre a
+// receita DESAZONALIZADA (robusta). Fallback: média YoY. Fallback: 4,5%.
+function calcularSugestaoReajuste() {
+  const meses = calcularResumoMensal();
+  const anos = new Set(meses.map(m => m.mes.slice(0, 4)));
+  const saz = calcularIndicesSazonais(meses);
+
+  if (anos.size >= 2 && meses.length >= 12) {
+    const pts = [];
+    meses.forEach((m, t) => {
+      const mm = m.mes.slice(5, 7);
+      const dessaz = saz.ok ? (m.liquido / (saz.indices[mm] || 1)) : m.liquido;
+      if (dessaz > 0) pts.push([t, Math.log(dessaz)]);
+    });
+    if (pts.length >= 6) {
+      const n = pts.length;
+      const sx = pts.reduce((s, p) => s + p[0], 0);
+      const sy = pts.reduce((s, p) => s + p[1], 0);
+      const sxx = pts.reduce((s, p) => s + p[0] * p[0], 0);
+      const sxy = pts.reduce((s, p) => s + p[0] * p[1], 0);
+      const denom = n * sxx - sx * sx;
+      if (denom !== 0) {
+        const b = (n * sxy - sx * sy) / denom;      // inclinação: ln(receita) por mês
+        const anual = Math.pow(Math.exp(b), 12) - 1; // converte p/ taxa anual
+        if (isFinite(anual)) {
+          return { ok: true, pct: Math.round(anual * 1000) / 10, anos: anos.size,
+            metodo: 'tendência log-linear desazonalizada' };
+        }
+      }
+    }
+  }
+
+  // Fallback: média do crescimento ano a ano
+  const porAno = {};
+  meses.forEach(m => { const a = m.mes.slice(0, 4); (porAno[a] = porAno[a] || { soma: 0, n: 0 }); porAno[a].soma += m.liquido; porAno[a].n++; });
+  const chaves = Object.keys(porAno).sort();
+  const medias = chaves.map(a => porAno[a].n ? porAno[a].soma / porAno[a].n : 0);
+  const cres = [];
+  for (let i = 1; i < medias.length; i++) if (medias[i - 1] > 0) cres.push(medias[i] / medias[i - 1] - 1);
+  if (cres.length) {
+    const media = cres.reduce((s, c) => s + c, 0) / cres.length;
+    return { ok: true, pct: Math.round(media * 1000) / 10, anos: chaves.length,
+      metodo: 'média de crescimento ano a ano' };
+  }
+  return { ok: false, pct: 4.5, anos: chaves.length, metodo: 'padrão',
+    motivo: 'Dados insuficientes (menos de 2 anos). Sugerimos ~4,5% a.a. (próximo da inflação).' };
+}
+
+// Valores efetivos da simulação (resolve defaults a partir do histórico).
+function getSimulacaoEfetiva() {
+  const store = getSimulacaoStore();
+  const meses = calcularResumoMensal();
+  const numMeses = meses.length;
+  const receitaAcum = meses.reduce((s, m) => s + m.liquido, 0);
+  const mediaLiq = numMeses > 0 ? receitaAcum / numMeses : 0;
+  const sug = calcularSugestaoReajuste();
+  const saz = calcularIndicesSazonais(meses);
+  let modo = store.modo || (saz.ok ? 'sazonal' : 'linear');
+  if (modo === 'sazonal' && !saz.ok) modo = 'linear'; // sem 2+ anos, cai p/ linear
+  return {
+    nMeses: store.meses != null ? store.meses : 12,
+    base: store.base != null ? store.base : mediaLiq,
+    reajuste: store.reajuste != null ? store.reajuste : (sug.ok ? sug.pct : 0),
+    modo,
+    sazonalDisponivel: saz.ok,
+    indices: saz.indices
+  };
+}
+
+function popularSimulacaoUI(meses, receitaAcum, numMeses) {
+  const store = getSimulacaoStore();
+  const mediaLiq = numMeses > 0 ? receitaAcum / numMeses : 0;
+  const sug = calcularSugestaoReajuste();
+  const ef = getSimulacaoEfetiva();
+  const mEl = document.getElementById('sim-meses');
+  const bEl = document.getElementById('sim-base');
+  const rEl = document.getElementById('sim-reajuste');
+  const modoEl = document.getElementById('sim-modo');
+  if (mEl && document.activeElement !== mEl) mEl.value = store.meses != null ? store.meses : 12;
+  if (bEl && document.activeElement !== bEl) bEl.value = (store.base != null ? store.base : Math.round(mediaLiq)) || 0;
+  if (rEl && document.activeElement !== rEl) rEl.value = store.reajuste != null ? store.reajuste : (sug.ok ? sug.pct : 0);
+  if (modoEl) {
+    const optSaz = modoEl.querySelector('option[value="sazonal"]');
+    if (optSaz) {
+      optSaz.disabled = !ef.sazonalDisponivel;
+      optSaz.textContent = ef.sazonalDisponivel ? 'Sazonal (recomendado)' : 'Sazonal (precisa de 2+ anos)';
+    }
+    modoEl.value = ef.modo;
+  }
+  const sEl = document.getElementById('sim-sugestao');
+  if (sEl) {
+    sEl.innerHTML = sug.ok
+      ? `💡 Sugestão: <strong>${sug.pct.toLocaleString('pt-BR')}% ao ano</strong> — ${sug.metodo} (${sug.anos} anos de dados).`
+      : `💡 ${sug.motivo}`;
+  }
+}
+
+function atualizarSimulacao() {
+  const store = getSimulacaoStore();
+  const mEl = document.getElementById('sim-meses');
+  const bEl = document.getElementById('sim-base');
+  const rEl = document.getElementById('sim-reajuste');
+  const modoEl = document.getElementById('sim-modo');
+  if (mEl) store.meses = Math.max(0, Math.min(120, parseInt(mEl.value) || 0));
+  if (bEl) store.base = (bEl.value === '' ? null : Math.max(0, parseFloat(bEl.value) || 0));
+  if (rEl) store.reajuste = (rEl.value === '' ? null : parseFloat(rEl.value) || 0);
+  if (modoEl) store.modo = modoEl.value;
+  salvarDados();
+  renderCharts(); // redesenha o gráfico de breakeven + atualiza o resumo da simulação
+}
+
+function aplicarSugestaoReajuste() {
+  const sug = calcularSugestaoReajuste();
+  const store = getSimulacaoStore();
+  store.reajuste = sug.pct;
+  salvarDados();
+  const rEl = document.getElementById('sim-reajuste');
+  if (rEl) rEl.value = sug.pct;
+  renderCharts();
 }
 
 // ==================== AIRBNB vs RENDA FIXA ====================
@@ -6831,13 +7729,52 @@ function renderCharts() {
       }
     });
 
+    // ---- 🔮 Projeção de receitas futuras (simulação) ----
+    const histLen = meses.length;
+    const sim = getSimulacaoEfetiva();
+    let custoOpMedio = 0;
+    if (histLen > 0) {
+      custoOpMedio = meses.reduce((s, m) => s + m.despesas + m.parcelas + m.imposto + (m.parcelaApto || 0), 0) / histLen;
+    }
+    let deltaCO = (coAtivo && histLen > 0) ? (dataCustoC[histLen - 1] - acumCustoB) : 0;
+    const fatorMensal = Math.pow(1 + (sim.reajuste / 100), 1 / 12);
+    if (sim.nMeses > 0 && histLen > 0) {
+      const ultimoMes = meses[histLen - 1].mes;
+      for (let k = 1; k <= sim.nMeses; k++) {
+        const ym = adicionarMesesAYM(ultimoMes, k);
+        const mm = ym.slice(5, 7);
+        // tendência (nível desazonalizado) cresce pelo reajuste; sazonal aplica o índice do mês
+        const tendencia = sim.base * Math.pow(fatorMensal, k);
+        const receitaMesProj = (sim.modo === 'sazonal' && sim.indices)
+          ? tendencia * (sim.indices[mm] || 1)
+          : tendencia;
+        labels.push(nomeMes(ym) + ' •'); // • marca trecho projetado
+        acumReceita += receitaMesProj;
+        acumCustoA += custoOpMedio;
+        acumCustoB += custoOpMedio;
+        dataReceita.push(acumReceita);
+        dataCustoA.push(acumCustoA);
+        dataCustoB.push(acumCustoB);
+        if (coAtivo) {
+          const selicM = selicMensalDoAno(parseInt(ym.slice(0, 4)));
+          deltaCO += acumCustoB * selicM;
+          dataCustoC.push(acumCustoB + deltaCO);
+        } else {
+          dataCustoC.push(null);
+        }
+      }
+    }
+
+    // Tracejar o trecho projetado (índices >= histLen)
+    const segProj = { borderDash: ctx => ctx.p1DataIndex >= histLen ? [6, 4] : undefined };
+
     const datasets = [
-      { label: '💰 Receita acumulada', data: dataReceita, borderColor: '#00A878', backgroundColor: 'rgba(0,168,120,0.1)', fill: true, tension: 0.3, borderWidth: 3, pointRadius: 4 },
-      { label: '🟢 Cenário A (operacional)', data: dataCustoA, borderColor: '#FF8800', backgroundColor: 'transparent', borderDash: [4,4], tension: 0.3, borderWidth: 2 },
-      { label: '🔵 Cenário B (invest. total)', data: dataCustoB, borderColor: '#E61E4D', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 }
+      { label: '💰 Receita acumulada', data: dataReceita, borderColor: '#00A878', backgroundColor: 'rgba(0,168,120,0.1)', fill: true, tension: 0.3, borderWidth: 3, pointRadius: 3, segment: segProj },
+      { label: '🟢 Cenário A (operacional)', data: dataCustoA, borderColor: '#FF8800', backgroundColor: 'transparent', borderDash: [4,4], tension: 0.3, borderWidth: 2, pointRadius: 0 },
+      { label: '🔵 Cenário B (invest. total)', data: dataCustoB, borderColor: '#E61E4D', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2, pointRadius: 0, segment: segProj }
     ];
     if (coAtivo) {
-      datasets.push({ label: '🟣 Cenário C (+ Selic)', data: dataCustoC, borderColor: '#7B61FF', backgroundColor: 'transparent', borderDash: [2,3], tension: 0.3, borderWidth: 2 });
+      datasets.push({ label: '🟣 Cenário C (+ Selic)', data: dataCustoC, borderColor: '#7B61FF', backgroundColor: 'transparent', borderDash: [2,3], tension: 0.3, borderWidth: 2, pointRadius: 0 });
     }
 
     charts.be = new Chart(ctx3, {
@@ -6856,6 +7793,27 @@ function renderCharts() {
         scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') } } }
       }
     });
+
+    // ---- Resumo: quando cada cenário é atingido (inclui projeção) ----
+    const idxCruz = (arr) => {
+      for (let i = 0; i < dataReceita.length; i++) {
+        if (arr[i] != null && dataReceita[i] >= arr[i]) return i;
+      }
+      return -1;
+    };
+    const fmtCruz = (i) => {
+      if (i < 0) return '<span style="color:#E61E4D">não atingido no período</span>';
+      const proj = i >= histLen ? ' <span style="color:#7B61FF">(projetado)</span>' : '';
+      return `<strong>${labels[i].replace(' •', '')}</strong>${proj}`;
+    };
+    const resEl = document.getElementById('sim-resultado');
+    if (resEl) {
+      let html = '<strong>Breakeven estimado</strong> (com a simulação atual): ';
+      html += `🟢 A: ${fmtCruz(idxCruz(dataCustoA))} · 🔵 B: ${fmtCruz(idxCruz(dataCustoB))}`;
+      if (coAtivo) html += ` · 🟣 C: ${fmtCruz(idxCruz(dataCustoC))}`;
+      html += `<div style="font-size:12px;color:#888;margin-top:6px">Projeção: ${sim.nMeses} meses · modelo ${sim.modo === 'sazonal' ? 'sazonal' : 'linear'} · base R$ ${Math.round(sim.base).toLocaleString('pt-BR')}/mês · reajuste ${sim.reajuste.toLocaleString('pt-BR')}%/ano · custos futuros mantidos na média atual.</div>`;
+      resEl.innerHTML = html;
+    }
   }
 }
 
@@ -10569,11 +11527,16 @@ function renderTudo() {
   const autoEl = document.getElementById('deducoes-auto');
   if (autoEl) autoEl.checked = cfg.deducoesAuto !== false;
 
+  // Nome do anfitrião (global, não por imóvel)
+  const anfEl = document.getElementById('cfg-anfitriao');
+  if (anfEl) anfEl.value = (dados.config && dados.config.anfitriao) ? dados.config.anfitriao : '';
+
   // Seletores e header (multi-imóveis)
   renderSeletorImoveis();
   renderSeletorAnos();
   atualizarHeader();
   renderImoveis();
+  renderBoasVindas();
 
   renderReservas();
   renderInvestimento();
@@ -10615,6 +11578,14 @@ function copiarBinId() {
 
   // Aplicar configuração da edição atual
   aplicarEdicao();
+
+  // 🔐 Verificar licenciamento ANTES de prosseguir (Pro/Premium)
+  const licencaOk = await inicializarLicenciamento();
+  if (!licencaOk) {
+    // Tela de ativação está visível, não continuar carregamento
+    setStatus('off', 'Aguardando ativação');
+    return;
+  }
 
   // Popular UI da nuvem se já estiver configurada
   if (cloudConfig.enabled && cloudConfig.binId) {
