@@ -892,8 +892,7 @@
     <div class="card" style="margin-top:16px">
       <div class="header-actions">
         <h2>📋 Reservas</h2>
-        <div style="display:flex; gap:8px; align-items:center">
-          <button class="btn btn-secondary btn-sm" id="rsv-btn-historico" onclick="toggleHistoricoReserva()" style="display:none">🗂️ Histórico</button>
+        <div>
           <span id="contador-reservas" class="pill pill-blue">0 reservas</span>
         </div>
       </div>
@@ -1052,7 +1051,6 @@
         <div style="display:flex; gap:8px; align-items:center">
           <span id="inv-filtros-ativos" style="font-size:12px; color:#666"></span>
           <button class="btn btn-secondary btn-sm" id="inv-limpar-filtros" onclick="limparFiltrosInv()" style="display:none">✕ Limpar filtros</button>
-          <button class="btn btn-secondary btn-sm" id="inv-btn-historico" onclick="toggleHistoricoInv()" style="display:none">🗂️ Histórico</button>
           <button class="btn btn-secondary btn-sm" onclick="exportarInvestimento()">📤 Exportar CSV</button>
         </div>
       </div>
@@ -4942,7 +4940,6 @@ function removerReserva(id) {
   renderTudo();
 }
 
-let rsvModoHistorico = false; // false = mostra pendentes; true = mostra pagas (histórico)
 function renderReservas() {
   const tbody = document.querySelector('#tabela-reservas tbody');
   tbody.innerHTML = '';
@@ -4953,26 +4950,10 @@ function renderReservas() {
   const headerExtra = document.getElementById('reserva-th-imovel');
   if (headerExtra) headerExtra.style.display = mostraImovel ? '' : 'none';
 
-  // === Histórico: separa receitas pagas das pendentes ===
-  const ehPagaRsv = (r) => r.status === 'pago';
-  const qtdPagasRsv = listaF.filter(ehPagaRsv).length;
-  const btnHistRsv = document.getElementById('rsv-btn-historico');
-  if (btnHistRsv) {
-    btnHistRsv.textContent = rsvModoHistorico ? '← Voltar às pendentes' : `🗂️ Histórico (${qtdPagasRsv})`;
-    btnHistRsv.style.display = (qtdPagasRsv > 0 || rsvModoHistorico) ? '' : 'none';
-  }
-  // No modo normal esconde as pagas; no histórico mostra só elas.
-  const listaVisivel = listaF.filter(r => rsvModoHistorico ? ehPagaRsv(r) : !ehPagaRsv(r));
-
-  if (!listaVisivel.length) {
-    const msg = rsvModoHistorico
-      ? 'Nenhuma receita paga ainda.'
-      : (qtdPagasRsv > 0
-          ? 'Tudo recebido! 🎉 As reservas pagas estão no <strong>🗂️ Histórico</strong> (botão acima).'
-          : 'Nenhuma reserva cadastrada nesta visão. Importe um CSV ou adicione manualmente.');
-    tbody.innerHTML = `<tr><td colspan="${mostraImovel ? 11 : 10}" class="empty-state">${msg}</td></tr>`;
+  if (!listaF.length) {
+    tbody.innerHTML = `<tr><td colspan="${mostraImovel ? 11 : 10}" class="empty-state">Nenhuma reserva cadastrada nesta visão. Importe um CSV ou adicione manualmente.</td></tr>`;
   } else {
-    const ordenada = [...listaVisivel].sort((a,b) => (a.inicio||'').localeCompare(b.inicio||''));
+    const ordenada = [...listaF].sort((a,b) => (a.inicio||'').localeCompare(b.inicio||''));
     ordenada.forEach(r => {
       const pill = r.status === 'pago' ? 'pill-green' : 'pill-blue';
       const pillTxt = r.status === 'pago' ? 'Pago' : 'Pendente';
@@ -5005,11 +4986,6 @@ function toggleStatusReserva(id) {
   r.status = r.status === 'pago' ? 'pendente' : 'pago';
   salvarDados();
   renderTudo();
-}
-
-function toggleHistoricoReserva() {
-  rsvModoHistorico = !rsvModoHistorico;
-  renderReservas();
 }
 
 // ==================== IMPORT CSV ====================
@@ -5512,7 +5488,6 @@ function mesAtualYM() {
 
 // Estado dos filtros da tabela de investimento
 let filtrosInv = { onde: null, status: null, pgto: null };
-let invModoHistorico = false; // false = mostra ativos; true = mostra quitados (histórico)
 
 function abrirFiltroInv(coluna) {
   // Coletar valores únicos dessa coluna
@@ -5548,12 +5523,6 @@ function abrirFiltroInv(coluna) {
 
 function limparFiltrosInv() {
   filtrosInv = { onde: null, status: null, pgto: null };
-  renderInvestimento();
-}
-
-function toggleHistoricoInv() {
-  invModoHistorico = !invModoHistorico;
-  filtrosInv.status = null; // evita conflito entre o filtro de status e o histórico
   renderInvestimento();
 }
 
@@ -5599,28 +5568,12 @@ function renderInvestimento() {
     return true;
   });
 
-  // === Histórico: separa compras quitadas dos itens ativos ===
-  const ehQuitadoInv = (i) => statusItemNoMes(i, hoje).status === 'quitado';
-  const qtdQuitados = ordenada.filter(ehQuitadoInv).length;
-  const btnHist = document.getElementById('inv-btn-historico');
-  if (btnHist) {
-    btnHist.textContent = invModoHistorico ? '← Voltar aos ativos' : `🗂️ Histórico (${qtdQuitados})`;
-    btnHist.style.display = (qtdQuitados > 0 || invModoHistorico) ? '' : 'none';
-  }
-  // No modo normal esconde os quitados; no histórico mostra só eles.
-  const listaVisivel = lista.filter(i => invModoHistorico ? ehQuitadoInv(i) : !ehQuitadoInv(i));
-
-  if (!listaVisivel.length) {
-    const msg = invModoHistorico
-      ? 'Nenhuma compra quitada ainda.'
-      : (qtdQuitados > 0
-          ? 'Tudo quitado por aqui! 🎉 As compras quitadas estão no <strong>🗂️ Histórico</strong> (botão acima).'
-          : 'Nenhum item com os filtros aplicados. <a href="#" onclick="limparFiltrosInv(); return false;">Limpar filtros</a>');
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">${msg}</td></tr>`;
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum item com os filtros aplicados. <a href="#" onclick="limparFiltrosInv(); return false;">Limpar filtros</a></td></tr>';
     return;
   }
 
-  listaVisivel.forEach(i => {
+  lista.forEach(i => {
     const st = statusItemNoMes(i, hoje);
     let pillClass = 'pill-gray', pillTxt = '—';
     if (st.status === 'futura') { pillClass = 'pill-blue'; pillTxt = 'Aguardando 1ª'; }
